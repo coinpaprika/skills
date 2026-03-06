@@ -257,6 +257,7 @@ The commit message MUST start with `[yaml-exchange-skill]` to clearly indicate i
 > **Next steps:**
 > 1. Map `<internal_id>` to the exchange in the **Coinpaprika admin panel**
 > 2. Run `deploy-fix insert_raw_ticks` on the `#rollout` Slack channel
+> 3. *(Only if order books were configured)* Run `deploy-fix update_order_books` on the `#rollout` Slack channel
 
 ### If the user declines to commit and push:
 
