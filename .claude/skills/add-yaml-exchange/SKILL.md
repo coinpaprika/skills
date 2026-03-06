@@ -210,10 +210,29 @@ Keep the output simple and short. Do NOT show raw API responses, field mappings,
 
 ### If test passed:
 
-Show:
-> **✅ Exchange `<exchange_name>` works correctly!**
+Show the user a simple summary table of 3 sample ticks so they can verify the data looks correct (price is price, volume is volume, etc.):
 
-Then ask the user: **"Do you want me to commit and push this exchange?"**
+> **Test passed! Here are 3 sample ticks — please verify the data looks correct:**
+>
+> | Market | Base | Quote | Last Price | Volume |
+> |--------|------|-------|------------|--------|
+> | BTC_USDT | BTC | USDT | 65432.10 | 1234.56 |
+> | ... | ... | ... | ... | ... |
+
+If order books were also tested, show 1 sample order book:
+
+> **Sample order book for BTC_USDT:**
+>
+> | | Price | Amount |
+> |------|-------|--------|
+> | Ask 1 | 65433.00 | 0.5 |
+> | Ask 2 | 65434.00 | 1.2 |
+> | Bid 1 | 65431.00 | 0.8 |
+> | Bid 2 | 65430.00 | 2.1 |
+
+Then ask: **"Does this look correct? If yes, do you want me to commit and push this exchange?"**
+
+Wait for the user to confirm the data looks right before proceeding.
 
 ### If test failed:
 
