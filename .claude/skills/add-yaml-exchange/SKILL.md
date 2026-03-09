@@ -197,6 +197,12 @@ The checker should print **3 sample ticks** and optionally **3 sample order book
 - `LastPrice` - non-zero
 - `Volume` - non-zero (unless `include_zero_volume` is set)
 
+If order books are configured, each sample order book entry must also have:
+- Price - non-zero
+- Quantity/Amount - non-zero
+
+If any of these values are zero, the endpoint is not valid or the field mapping is wrong — treat it as a test failure and fix before proceeding.
+
 ### If the test fails
 1. Read the error message carefully
 2. Re-check the API response structure by fetching the endpoint again with `WebFetch`
