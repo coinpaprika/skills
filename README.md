@@ -8,6 +8,7 @@ Ready-to-use skills that give AI agents instant access to crypto market data. In
 |-------|-------------|-------------|
 | **[coinpaprika-api](./coinpaprika-api/)** | CEX market data: 12,000+ coins, 350+ exchanges, tickers, OHLCV, historical prices | [api.coinpaprika.com](https://api.coinpaprika.com) |
 | **[dexpaprika-api](./dexpaprika-api/)** | DEX data: 34 chains, 30M+ pools, 27M+ tokens, real-time streaming | [api.dexpaprika.com](https://api.dexpaprika.com) |
+| **[add-yaml-exchange](./.claude/skills/add-yaml-exchange/)** | Internal: Add new cryptocurrency exchanges via YAML configuration | CoinPaprika infrastructure |
 
 ## Quick install (Claude Code)
 
