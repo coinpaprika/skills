@@ -12,20 +12,23 @@ Ready-to-use skills that give AI agents instant access to crypto market data. In
 
 ## Install (Claude Code)
 
-Clone this repo into your project's `.claude/skills/` directory:
+Clone the repo and copy the skill(s) you need into your project's `.claude/skills/` directory:
 
 ```bash
-# Clone into your project
 cd your-project/
-git clone https://github.com/coinpaprika/skills.git .claude/skills/coinpaprika
 
-# Or clone just one skill using sparse checkout
-git clone --filter=blob:none --sparse https://github.com/coinpaprika/skills.git .claude/skills/coinpaprika
-cd .claude/skills/coinpaprika
-git sparse-checkout set dexpaprika-api   # or coinpaprika-api, or both
+# Clone the repo
+git clone https://github.com/coinpaprika/skills.git /tmp/coinpaprika-skills
+
+# Copy the skill(s) you want
+cp -r /tmp/coinpaprika-skills/dexpaprika-api .claude/skills/
+cp -r /tmp/coinpaprika-skills/coinpaprika-api .claude/skills/
+
+# Clean up
+rm -rf /tmp/coinpaprika-skills
 ```
 
-Or simply copy the skill folder you need into `.claude/skills/` in your project. Then restart Claude Code — it picks up new skills automatically.
+Each skill must be a direct child of `.claude/skills/` (e.g., `.claude/skills/dexpaprika-api/SKILL.md`). Restart Claude Code after installing — it picks up new skills automatically.
 
 After installing, just ask your agent to query crypto data. It knows the APIs, CLI tools, endpoints, and response formats automatically.
 
