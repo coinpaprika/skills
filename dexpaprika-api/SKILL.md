@@ -44,6 +44,17 @@ dexpaprika-cli pools ethereum --limit 10 --output json --raw
 # Historical OHLCV for a pool
 dexpaprika-cli pool-ohlcv ethereum 0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640 --start 2025-01-27 --output json --raw
 
+# Top tokens on a network (ranked, with multi-timeframe metrics)
+dexpaprika-cli top-tokens ethereum --limit 20 --output json --raw
+dexpaprika-cli top-tokens solana --order-by price_change --sort asc --output json --raw
+
+# Filter tokens by volume, FDV, liquidity, txns
+dexpaprika-cli filter-tokens ethereum --volume-24h-min 100000 --output json --raw
+dexpaprika-cli filter-tokens solana --fdv-min 1000000 --liquidity-usd-min 50000 --output json --raw
+
+# Filter pools by volume, liquidity, txns, creation date
+dexpaprika-cli pool-filter ethereum --volume-24h-min 500000 --liquidity-usd-min 50000 --output json --raw
+
 # Batch token prices
 dexpaprika-cli prices ethereum --tokens 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2,0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48 --output json --raw
 
@@ -70,14 +81,17 @@ curl -s "https://api.dexpaprika.com/networks/ethereum/tokens/0xc02aaa39b223fe8d0
 
 | Need | Endpoint |
 |------|----------|
-| List all networks | `GET /networks` |
-| DEXes on a network | `GET /networks/{network}/dexes` |
+| List all networks | `GET /networks` (returns volume_usd_24h, txns_24h, pools_count per network) |
+| DEXes on a network | `GET /networks/{network}/dexes` (returns volume_usd_24h, txns_24h, pools_count per DEX) |
 | Top pools on network | `GET /networks/{network}/pools` |
+| Filter pools | `GET /networks/{network}/pools/filter` (volume, liquidity, txns, creation date filters) |
 | Pool details | `GET /networks/{network}/pools/{pool_address}` |
 | Pool OHLCV (charts) | `GET /networks/{network}/pools/{pool_address}/ohlcv` |
 | Pool transactions | `GET /networks/{network}/pools/{pool_address}/transactions` |
 | Token price + data | `GET /networks/{network}/tokens/{token_address}` |
 | Pools containing token | `GET /networks/{network}/tokens/{token_address}/pools` |
+| Filter tokens | `GET /networks/{network}/tokens/filter` (volume, liquidity, FDV, txns, creation date filters) |
+| Top tokens on network | `GET /networks/{network}/tokens/top` (ranked by volume, price, liquidity, txns, or price change) |
 | Batch token prices | `GET /networks/{network}/multi/prices?tokens={addr1},{addr2}` |
 | Pools for a DEX | `GET /networks/{network}/dexes/{dex}/pools` |
 | Search tokens/pools/DEXes | `GET /search?query={term}` |
@@ -229,9 +243,9 @@ Full list: `GET /networks` or `dexpaprika-cli networks`.
 
 ## Pagination
 
-All list endpoints support: `?page=0&limit=10&order_by=volume_usd&sort=desc`
+All list endpoints support: `?page=1&limit=10&order_by=volume_usd&sort=desc`
 
-Pages are 0-indexed (first page is `page=0`). Max 1000 pages. Available `order_by` values: `volume_usd`, `liquidity_usd`, `price_usd`, `transactions`, `last_price_change_usd_24h`, `created_at`.
+Pages are 1-indexed (first page is `page=1`). Max 1000 pages. Available `order_by` values: `volume_usd`, `liquidity_usd`, `price_usd`, `transactions`, `last_price_change_usd_24h`, `created_at`. Filter endpoints use `sort_by`/`sort_dir` instead of `order_by`/`sort`.
 
 ## Timestamps
 
