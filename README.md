@@ -10,27 +10,12 @@ Ready-to-use skills that give AI agents instant access to crypto market data. In
 | **[dexpaprika-api](./dexpaprika-api/)** | DEX data: 34 chains, 30M+ pools, 27M+ tokens, real-time streaming | [api.dexpaprika.com](https://api.dexpaprika.com) |
 | **[add-yaml-exchange](./.claude/skills/add-yaml-exchange/)** | Internal: Add new cryptocurrency exchanges via YAML configuration | CoinPaprika infrastructure |
 
-## Install (Claude Code)
+## Installation
 
-Clone the repo and copy the skill(s) you need into your project's `.claude/skills/` directory:
+```npx skills add github.com/coinpaprika/skills/```
 
-```bash
-cd your-project/
+<img width="715" height="379" alt="image" src="https://github.com/user-attachments/assets/7dd9557d-140a-44f3-8d18-5e65b326dda8" />
 
-# Clone the repo
-git clone https://github.com/coinpaprika/skills.git /tmp/coinpaprika-skills
-
-# Copy the skill(s) you want
-cp -r /tmp/coinpaprika-skills/dexpaprika-api .claude/skills/
-cp -r /tmp/coinpaprika-skills/coinpaprika-api .claude/skills/
-
-# Clean up
-rm -rf /tmp/coinpaprika-skills
-```
-
-Each skill must be a direct child of `.claude/skills/` (e.g., `.claude/skills/dexpaprika-api/SKILL.md`). Restart Claude Code after installing — it picks up new skills automatically.
-
-After installing, just ask your agent to query crypto data. It knows the APIs, CLI tools, endpoints, and response formats automatically.
 
 ## What's inside each skill
 
