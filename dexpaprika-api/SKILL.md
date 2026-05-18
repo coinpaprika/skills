@@ -119,29 +119,40 @@ No API key needed. Provides tools for querying networks, pools, tokens, OHLCV, t
 
 Documentation: https://docs.dexpaprika.com/ai-integration/hosted-mcp-server
 
-### Option 4: Streaming API (real-time prices)
+### Option 4: Streaming API (real-time prices + pool reserves)
 
 Base URL: `https://streaming.dexpaprika.com`
 
-Stream live token prices via Server-Sent Events (SSE). ~1 second updates, 1-2,000 tokens per connection.
+Two SSE feeds share one transport:
+- `/sse/prices`: live token price updates (~1 s cadence per asset).
+- `/sse/reserves`: block-level pool reserve updates with USD-denominated deltas.
 
-Single token (GET):
+**Limits:** 25 subscriptions per POST connection. 10 concurrent SSE streams per IP. A `ping` event lands every 15 s.
+
+Single token price (GET):
 ```bash
-curl --http1.1 -N "https://streaming.dexpaprika.com/stream?method=t_p&chain=ethereum&address=0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+curl --http1.1 -N "https://streaming.dexpaprika.com/sse/prices?method=token_price&chain=ethereum&address=0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
 ```
 
-Multiple tokens (POST):
+Multiple token prices (POST, up to 25):
 ```bash
-curl --http1.1 -N -X POST "https://streaming.dexpaprika.com/stream" \
+curl --http1.1 -N -X POST "https://streaming.dexpaprika.com/sse/prices" \
   -H "Accept: text/event-stream" -H "Content-Type: application/json" \
-  -d '[{"chain":"ethereum","address":"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2","method":"t_p"}]'
+  -d '[{"chain":"ethereum","address":"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2","method":"token_price"}]'
 ```
 
-Response fields: `a` = token address, `c` = chain, `p` = price USD (string), `t` = server timestamp, `t_p` = price timestamp.
+Pool reserves (GET):
+```bash
+curl --http1.1 -N "https://streaming.dexpaprika.com/sse/reserves?method=pool_reserves&chain=ethereum&address=0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640"
+```
 
-**Important:** Streaming requires HTTP/1.1. Add `--http1.1` with curl. One invalid asset cancels the entire stream.
+`token_price` event fields: `address`, `chain`, `price` (USD as string), `timestamp`, `timestamp_price` (both unix seconds). The legacy `t_p` method emits a compact `{a, c, p, t, t_p}` shape on the deprecated `/stream` path only and should not be used in new code.
 
-For full streaming docs, read `references/streaming-api.md`.
+`reserve_update` event fields: `chain`, `pool_id`, `block` (string), `previous_block` (string, optional), `tokens[]` (with `reserve`/`delta` as strings, `price_usd`/`reserve_usd`/`delta_usd` as numbers), `total_reserve_usd`, `total_delta_usd`. Raw integer fields exceed `Number.MAX_SAFE_INTEGER`, parse with `BigInt`.
+
+**Important:** Streaming requires HTTP/1.1. Add `--http1.1` with curl. One invalid asset cancels the entire stream with HTTP 400. SSE parsers must buffer one message between blank-line boundaries before dispatching: both `event:`/`data:` orderings are valid and the server uses either.
+
+For the full streaming reference (events, errors, parser patterns), read `references/streaming-api.md`.
 
 ### Option 5: SDKs
 
@@ -207,18 +218,31 @@ Returns an **ARRAY** (not a keyed object). Max 10 tokens per request.
 import requests, json
 
 assets = [
-    {"chain": "ethereum", "address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "method": "t_p"},
-    {"chain": "solana", "address": "So11111111111111111111111111111111111111112", "method": "t_p"}
+    {"chain": "ethereum", "address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "method": "token_price"},
+    {"chain": "solana",   "address": "So11111111111111111111111111111111111111112",  "method": "token_price"}
 ]
 
-r = requests.post("https://streaming.dexpaprika.com/stream",
+r = requests.post("https://streaming.dexpaprika.com/sse/prices",
     headers={"Accept": "text/event-stream", "Content-Type": "application/json"},
     json=assets, stream=True)
 
-for line in r.iter_lines():
-    if line and line.startswith(b'data:'):
-        data = json.loads(line[5:])
-        print(f"{data['c']} {data['a']}: ${data['p']}")
+# Buffer one SSE message at a time, then dispatch. Both `event:`/`data:`
+# line orderings are valid SSE and the server has emitted either, so a
+# line-by-line parser that assumes one order will silently mis-dispatch.
+msg_lines = []
+for line in r.iter_lines(decode_unicode=True):
+    if line:
+        msg_lines.append(line); continue
+    event_type, data_str = "message", None
+    for ml in msg_lines:
+        if ml.startswith("event:"):
+            event_type = ml.split(":", 1)[1].strip()
+        elif ml.startswith("data:"):
+            data_str = ml[5:].lstrip()
+    msg_lines = []
+    if event_type == "token_price" and data_str:
+        d = json.loads(data_str)
+        print(f"{d['chain']} {d['address']}: ${d['price']}")
 ```
 
 ---

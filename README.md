@@ -16,6 +16,8 @@ Ready-to-use skills that give AI agents instant access to crypto market data. In
 <img width="715" height="379" alt="image" src="https://github.com/user-attachments/assets/7dd9557d-140a-44f3-8d18-5e65b326dda8" />
 
 
+After installing, just ask your agent to query crypto data. It knows the APIs, CLI tools, endpoints, and response formats automatically.
+
 ## What's inside each skill
 
 ```
