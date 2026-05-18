@@ -1125,6 +1125,20 @@ paths:
         - $ref: "#/components/parameters/networkParam"
         - $ref: "#/components/parameters/poolAddressParam"
         - in: query
+          name: from
+          required: false
+          schema:
+            type: integer
+            format: int64
+          description: Filter transactions starting from this UNIX timestamp.
+        - in: query
+          name: to
+          required: false
+          schema:
+            type: integer
+            format: int64
+          description: Filter transactions up to this UNIX timestamp.
+        - in: query
           name: cursor
           description: >-
             Cursor is a transaction ID used for pagination. If empty, the first
@@ -1801,6 +1815,12 @@ components:
         website:
           type: string
           description: Official website URL for the token/project.
+        telegram:
+          type: string
+          description: Official Telegram URL for the token/project.
+        twitter:
+          type: string
+          description: Official Twitter URL for the token/project.
         explorer:
           type: string
           description: Link to a block explorer or analytics page for this token.
