@@ -85,6 +85,8 @@ curl -s "https://api.dexpaprika.com/networks/ethereum/tokens/0xc02aaa39b223fe8d0
 | DEXes on a network | `GET /networks/{network}/dexes` (returns volume_usd_24h, txns_24h, pools_count per DEX) |
 | Top pools on network | `GET /networks/{network}/pools` |
 | Filter pools | `GET /networks/{network}/pools/filter` (volume, liquidity, txns, creation date filters) |
+| Advanced pool search (all chains) | `GET /frontend/v1/pools` (sort, multi-filter, cursor pagination, detailed tokens) |
+| Advanced pool search (one chain) | `GET /frontend/v1/networks/{network}/pools` (same params, scoped to one chain) |
 | Pool details | `GET /networks/{network}/pools/{pool_address}` |
 | Pool OHLCV (charts) | `GET /networks/{network}/pools/{pool_address}/ohlcv` |
 | Pool transactions | `GET /networks/{network}/pools/{pool_address}/transactions` |
@@ -148,9 +150,21 @@ curl --http1.1 -N "https://streaming.dexpaprika.com/sse/reserves?method=pool_res
 
 `token_price` event fields: `address`, `chain`, `price` (USD as string), `timestamp`, `timestamp_price` (both unix seconds). The legacy `t_p` method emits a compact `{a, c, p, t, t_p}` shape on the deprecated `/stream` path only and should not be used in new code.
 
-`reserve_update` event fields: `chain`, `pool_id`, `block` (string), `previous_block` (string, optional), `tokens[]` (with `reserve`/`delta` as strings, `price_usd`/`reserve_usd`/`delta_usd` as numbers), `total_reserve_usd`, `total_delta_usd`. Raw integer fields exceed `Number.MAX_SAFE_INTEGER`, parse with `BigInt`.
+The reserves feed now emits **method-named events**: the old single `reserve_update` event is gone. Match on the two event names instead:
 
-**Important:** Streaming requires HTTP/1.1. Add `--http1.1` with curl. One invalid asset cancels the entire stream with HTTP 400. SSE parsers must buffer one message between blank-line boundaries before dispatching: both `event:`/`data:` orderings are valid and the server uses either.
+- `pool_reserves` event (one pool, nested tokens): `chain`, `pool_id`, `block` (string), `tokens[]` (each `token_id`, `reserve`/`delta` as strings, `price_usd`/`reserve_usd`/`delta_usd` as numbers), `total_reserve_usd`, `total_delta_usd`, `timestamp`, `block_timestamp` (both unix seconds).
+- `token_reserves` event (one token across all its pools, flat): `chain`, `token_id`, `reserve`/`delta` (strings), `block` (string), `price_usd`, `reserve_usd`, `delta_usd`, `updated_at`, `timestamp` (both unix seconds).
+
+Raw integer fields (`reserve`, `delta`, `block`) exceed `Number.MAX_SAFE_INTEGER`, parse with `BigInt`. A consumer tailing reserves must stop matching `reserve_update` and handle these two event names plus their new timestamp fields.
+
+`request_id` correlation (optional): pass `request_id` as a `uint32` (0..4294967295) on GET via the query string, or per-asset in the POST body (it defaults to the asset's array index). The server echoes it back as a `request_id:` SSE line on data events only. `ping`, `warning`, and `error` events carry no `request_id`.
+
+```bash
+# GET with request_id; the value comes back on each pool_reserves event
+curl --http1.1 -N "https://streaming.dexpaprika.com/sse/reserves?method=pool_reserves&chain=ethereum&address=0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640&request_id=12345"
+```
+
+**Important:** Streaming requires HTTP/1.1. Add `--http1.1` with curl. One invalid asset cancels the entire stream with HTTP 400. SSE parsers must buffer one message between blank-line boundaries before dispatching: both `event:`/`data:` orderings are valid and the server uses either, and a `request_id:` line can appear alongside `event:`/`data:`.
 
 For the full streaming reference (events, errors, parser patterns), read `references/streaming-api.md`.
 
@@ -212,6 +226,66 @@ curl -s "https://api.dexpaprika.com/networks/ethereum/multi/prices?tokens=0xc02a
 
 Returns an **ARRAY** (not a keyed object). Max 10 tokens per request.
 
+### Advanced pool search
+
+For ranked, multi-filter pool discovery across one chain or all of them, use the `/frontend/v1/pools` endpoints. These are richer than `/networks/{network}/pools/filter`: sortable on 24h/7d/30d volume, cursor pagination instead of page numbers, and an optional `detailed` flag that inlines per-token FDV and multi-timeframe trade stats.
+
+Global (every chain):
+```bash
+curl -s "https://api.dexpaprika.com/frontend/v1/pools?limit=3&order_by=volume_usd_24h&sort=desc&price_usd_min=0.5&dex_name=uniswap_v3&detailed=true" | jq '.results[0] | {id, dex_name, chain, price_usd, volume_usd_24h, transactions_24h, liquidity_usd}'
+```
+
+Per-network (one chain):
+```bash
+curl -s "https://api.dexpaprika.com/frontend/v1/networks/ethereum/pools?limit=10&order_by=volume_usd_24h&sort=desc&txns_24h_min=500" | jq '.results[] | {id, dex_name, volume_usd_24h, transactions_24h}'
+```
+
+**Sort parameters, canonical vs wire.** Our SDKs and the MCP server accept the canonical names `sort_by` and `sort_dir`. The raw HTTP endpoint does **not**: on the wire you must send `order_by` and `sort`, and anything sent as `sort_by`/`sort_dir` is silently ignored (the endpoint falls back to its default sort, confirmed via the `query` echo in the response). When calling the REST API directly, translate:
+
+| Canonical (SDK/MCP) | Wire (raw HTTP) | Values |
+|---|---|---|
+| `sort_by` | `order_by` | `volume_usd_24h` (default), `volume_usd_7d`, `volume_usd_30d`, `liquidity_usd`, `txns_24h`, `price_usd`, `price_change_percentage_24h`, `created_at` |
+| `sort_dir` | `sort` | `asc`, `desc` (default `desc`) |
+
+**Filters** (all optional, same names on canonical and wire):
+
+| Filter | Type | Notes |
+|---|---|---|
+| `volume_24h_min` / `volume_24h_max` | number | 24h USD volume bounds |
+| `volume_7d_min` / `volume_7d_max` | number | 7d USD volume bounds |
+| `liquidity_usd_min` / `liquidity_usd_max` | number | liquidity (USD) bounds |
+| `txns_24h_min` | int | minimum 24h transaction count |
+| `price_usd_min` / `price_usd_max` | number | pool price (USD) bounds |
+| `price_change_percentage_24h_min` / `price_change_percentage_24h_max` | number | 24h % change bounds (accepts negatives) |
+| `dex_name` | string | DEX slug, e.g. `uniswap_v3`, `pancakeswap_v3` |
+| `created_after` / `created_before` | int | **Unix epoch seconds only.** Date strings (`2024-01-01`, RFC3339) break the response: the body comes back with a null `results` array. Pass `date -d 2024-01-01 +%s` style epochs. |
+
+**Cursor pagination.** Unlike the page-numbered list endpoints, these use opaque cursors. Read `next_cursor` from the response and pass it back as `?cursor=...` to fetch the next page. Stop when `has_next_page` is `false`.
+
+```bash
+# page 1
+RESP=$(curl -s "https://api.dexpaprika.com/frontend/v1/pools?limit=50&order_by=volume_usd_24h&sort=desc")
+CURSOR=$(echo "$RESP" | jq -r '.next_cursor')
+# page 2
+curl -s "https://api.dexpaprika.com/frontend/v1/pools?limit=50&order_by=volume_usd_24h&sort=desc&cursor=$CURSOR" | jq '.has_next_page'
+```
+
+**Detailed tokens.** Add `detailed=true` to inline full token objects. Without it, each entry in `tokens[]` carries only `id`, `chain`, `has_image`. With it, tokens also carry `name`, `symbol`, `decimals`, `total_supply`, `added_at`, `status`, `fdv`, and per-timeframe trade blocks keyed `1m`, `5m`, `15m`, `30m`, `1h`, `6h`, `24h` (each `{volume_usd, buys, sells, txns, last_price_usd_change}`).
+
+**Response shape:**
+```json
+{
+  "results": [ /* PoolRow objects */ ],
+  "has_next_page": true,
+  "next_cursor": "eyJjaGFpbiI6...",
+  "query": { "limit": 3, "order_by": "volume_usd_24h", "sort": "desc", ... }
+}
+```
+
+Each `PoolRow`: `id`, `dex_id`, `dex_name`, `chain`, `fee`, `created_at`, `created_at_block_number`, `price_usd`, `transactions_24h`, `volume_usd_24h`, `volume_usd_7d`, `volume_usd_30d`, `liquidity_usd`, `price_change_percentage_5m`, `price_change_percentage_1h`, `price_change_percentage_24h`, `tokens[]`.
+
+**Treat every field as optional/nullable.** Live responses routinely return `fee: null` and `liquidity_usd: 0` on real pools, and `fdv` is absent on tokens the indexer hasn't priced yet. Do not assume any field is present or non-zero. Guard before you read.
+
 ### Stream real-time prices (Python)
 
 ```python
@@ -267,9 +341,11 @@ Full list: `GET /networks` or `dexpaprika-cli networks`.
 
 ## Pagination
 
-All list endpoints support: `?page=1&limit=10&order_by=volume_usd&sort=desc`
+Most list endpoints support: `?page=1&limit=10&order_by=volume_usd&sort=desc`
 
-Pages are 1-indexed (first page is `page=1`). Max 1000 pages. Available `order_by` values: `volume_usd`, `liquidity_usd`, `price_usd`, `transactions`, `last_price_change_usd_24h`, `created_at`. Filter endpoints use `sort_by`/`sort_dir` instead of `order_by`/`sort`.
+Pages are 1-indexed (first page is `page=1`). Max 1000 pages. Available `order_by` values: `volume_usd`, `liquidity_usd`, `price_usd`, `transactions`, `last_price_change_usd_24h`, `created_at`. The `/networks/{network}/{...}/filter` endpoints use the canonical `sort_by`/`sort_dir` names.
+
+The `/frontend/v1/pools` and `/frontend/v1/networks/{network}/pools` endpoints are different: they use **cursor pagination** (`next_cursor` + `cursor`, not `page`), and on the wire they take `order_by`/`sort` (the canonical `sort_by`/`sort_dir` names are honored only by the SDKs and MCP, which translate them). See the "Advanced pool search" workflow above for the full param and field list.
 
 ## Timestamps
 
