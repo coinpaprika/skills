@@ -83,15 +83,15 @@ curl -s "https://api.dexpaprika.com/networks/ethereum/tokens/0xc02aaa39b223fe8d0
 |------|----------|
 | List all networks | `GET /networks` (returns volume_usd_24h, txns_24h, pools_count per network) |
 | DEXes on a network | `GET /networks/{network}/dexes` (returns volume_usd_24h, txns_24h, pools_count per DEX) |
-| Top pools on network | `GET /networks/{network}/pools` |
-| Filter pools | `GET /networks/{network}/pools/filter` (volume, liquidity, txns, creation date filters) |
+| Top pools on network | `GET /networks/{network}/pools/search` (order_by=volume_usd_24h; rows under `results`, cursor pagination) |
+| Filter pools | `GET /networks/{network}/pools/search` (volume_usd_24h/7d/30d, liquidity_usd, txns_24h, creation date filters) |
 | Pool details | `GET /networks/{network}/pools/{pool_address}` |
 | Pool OHLCV (charts) | `GET /networks/{network}/pools/{pool_address}/ohlcv` |
 | Pool transactions | `GET /networks/{network}/pools/{pool_address}/transactions` |
 | Token price + data | `GET /networks/{network}/tokens/{token_address}` |
 | Pools containing token | `GET /networks/{network}/tokens/{token_address}/pools` |
-| Filter tokens | `GET /networks/{network}/tokens/filter` (volume, liquidity, FDV, txns, creation date filters) |
-| Top tokens on network | `GET /networks/{network}/tokens/top` (ranked by volume, price, liquidity, txns, or price change) |
+| Filter tokens | `GET /networks/{network}/tokens/search` (volume_usd_24h, liquidity_usd, fdv_usd, txns_24h, creation date filters) |
+| Top tokens on network | `GET /networks/{network}/tokens/search` (order_by=volume_usd_24h/liquidity_usd/txns_24h/fdv_usd/price_change_percentage_24h; rows under `results`, cursor pagination) |
 | Batch token prices | `GET /networks/{network}/multi/prices?tokens={addr1},{addr2}` |
 | Pools for a DEX | `GET /networks/{network}/dexes/{dex}/pools` |
 | Search tokens/pools/DEXes | `GET /search?query={term}` |
