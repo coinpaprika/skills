@@ -997,6 +997,12 @@ paths:
                     type: string
                   dex_name:
                     type: string
+                  base_token_id:
+                    type: string
+                    description: The base token ID for the price.
+                  quote_token_id:
+                    type: string
+                    description: The quote token ID for the price.
                   tokens:
                     type: array
                     items:
