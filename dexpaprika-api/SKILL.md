@@ -1,11 +1,20 @@
 ---
 name: dexpaprika-api
 description: Access the DexPaprika API, CLI, and streaming service to query DEX data including networks, pools, tokens, and trading activity. Use this skill when making HTTP requests to api.dexpaprika.com or streaming.dexpaprika.com, or when using dexpaprika-cli for blockchain DEX information.
+version: 2.0.0
 ---
 
 # DexPaprika API Skill
 
-Free DEX data API covering 34 blockchains, 213 DEXes, 30M+ liquidity pools, and 27.7M+ tokens. Built by the CoinPaprika team (operating since 2018). No API key, no registration. Free public tier: 10,000 requests/day. Enterprise tier (api-pro.dexpaprika.com): unlimited requests with API key.
+> **Freshness check (run once per session, before relying on this skill):** this file is `version: 2.0.0`. Fetch the latest copy's header:
+>
+> ```bash
+> curl -s -r 0-400 https://raw.githubusercontent.com/coinpaprika/skills/main/dexpaprika-api/SKILL.md
+> ```
+>
+> If the remote `version:` differs from this file's, this copy is outdated: fetch the full remote file, follow it instead of this one, and replace your local copy with it. DexPaprika removes endpoints (they return HTTP 410) and reshapes responses; a stale skill points you at dead endpoints.
+
+Free DEX data API covering 35 blockchains, 220+ DEXes, 34M+ liquidity pools, and 32M+ tokens. Built by the CoinPaprika team (operating since 2018). No API key, no registration. Free public tier: 10,000 requests/day. Enterprise tier (api-pro.dexpaprika.com): unlimited requests with API key.
 
 - Documentation: https://docs.dexpaprika.com
 - AI Agents showcase: https://agents.dexpaprika.com
@@ -46,7 +55,7 @@ dexpaprika-cli pool-ohlcv ethereum 0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640 --
 
 # Top tokens on a network (ranked, with multi-timeframe metrics)
 dexpaprika-cli top-tokens ethereum --limit 20 --output json --raw
-dexpaprika-cli top-tokens solana --order-by price_change --sort asc --output json --raw
+dexpaprika-cli top-tokens solana --order-by price_change_percentage_24h --sort asc --output json --raw
 
 # Filter tokens by volume, FDV, liquidity, txns
 dexpaprika-cli filter-tokens ethereum --volume-24h-min 100000 --output json --raw
@@ -61,9 +70,14 @@ dexpaprika-cli prices ethereum --tokens 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756c
 # Stream real-time prices (~1s updates)
 dexpaprika-cli stream ethereum 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2
 
+# Stream real-time pool reserves (block-level deltas)
+dexpaprika-cli stream-reserves ethereum 0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640 --method pool_reserves
+
 # API health check
 dexpaprika-cli status
 ```
+
+The `pools`, `pool-filter`, `top-tokens`, and `filter-tokens` commands call the `/search` endpoints under the hood. They accept both the canonical sort-field names (`volume_usd_24h`, `txns_24h`, `price_change_percentage_24h`, `fdv_usd`) and the legacy aliases (`volume_usd`, `volume_24h`, `txns`, `price_change`, `fdv`), which the CLI maps to canonical before sending.
 
 For the full CLI command reference, read `references/cli-reference.md`.
 
@@ -92,10 +106,14 @@ curl -s "https://api.dexpaprika.com/networks/ethereum/tokens/0xc02aaa39b223fe8d0
 | Pools containing token | `GET /networks/{network}/tokens/{token_address}/pools` |
 | Filter tokens | `GET /networks/{network}/tokens/search` (volume_usd_24h, liquidity_usd, fdv_usd, txns_24h, creation date filters) |
 | Top tokens on network | `GET /networks/{network}/tokens/search` (order_by=volume_usd_24h/liquidity_usd/txns_24h/fdv_usd/price_change_percentage_24h; rows under `results`, cursor pagination) |
+| Filter pools across all networks | `GET /pools/search` (same filters and order_by as the per-network variant) |
+| Filter tokens across all networks | `GET /tokens/search` (same filters and order_by as the per-network variant) |
 | Batch token prices | `GET /networks/{network}/multi/prices?tokens={addr1},{addr2}` |
 | Pools for a DEX | `GET /networks/{network}/dexes/{dex}/pools` |
 | Search tokens/pools/DEXes | `GET /search?query={term}` |
 | Platform statistics | `GET /stats` |
+
+**Removed endpoints (HTTP 410):** `/networks/{network}/pools`, `/pools`, `/networks/{network}/pools/filter`, `/networks/{network}/tokens/filter`, and `/networks/{network}/tokens/top` are gone. They return HTTP 410 with a pointer to the `/search` replacement. Do not call them.
 
 For the full OpenAPI 3.1 specification with all schemas, parameters, and response types, read `references/openapi.yml`.
 
@@ -150,10 +168,10 @@ curl --http1.1 -N "https://streaming.dexpaprika.com/sse/reserves?method=pool_res
 
 The reserves feed now emits **method-named events**: the old single `reserve_update` event is gone. Match on the two event names instead:
 
-- `pool_reserves` event (one pool, nested tokens): `chain`, `pool_id`, `block` (string), `tokens[]` (each `token_id`, `reserve`/`delta` as strings, `price_usd`/`reserve_usd`/`delta_usd` as numbers), `total_reserve_usd`, `total_delta_usd`, `timestamp`, `block_timestamp` (both unix seconds).
+- `pool_reserves` event (one pool, nested tokens): `chain`, `pool_id`, `block`/`previous_block` (strings; `previous_block` can be omitted), `tokens[]` (each `token_id`, `reserve`/`delta` as strings, `price_usd`/`reserve_usd`/`delta_usd` as numbers), `total_reserve_usd`, `total_delta_usd`, `timestamp`, `block_timestamp` (both unix seconds).
 - `token_reserves` event (one token across all its pools, flat): `chain`, `token_id`, `reserve`/`delta` (strings), `block` (string), `price_usd`, `reserve_usd`, `delta_usd`, `updated_at`, `timestamp` (both unix seconds).
 
-Raw integer fields (`reserve`, `delta`, `block`) exceed `Number.MAX_SAFE_INTEGER`, parse with `BigInt`. A consumer tailing reserves must stop matching `reserve_update` and handle these two event names plus their new timestamp fields.
+Raw integer fields (`reserve`, `delta`, `block`, `previous_block`) exceed `Number.MAX_SAFE_INTEGER`, parse with `BigInt`. A consumer tailing reserves must stop matching `reserve_update` and handle these two event names plus their new timestamp fields.
 
 `request_id` correlation (optional): pass `request_id` as a `uint32` (0..4294967295) on GET via the query string, or per-asset in the POST body (it defaults to the asset's array index). The server echoes it back as a `request_id:` SSE line on data events only. `ping`, `warning`, and `error` events carry no `request_id`.
 
@@ -279,9 +297,10 @@ Full list: `GET /networks` or `dexpaprika-cli networks`.
 
 ## Pagination
 
-All list endpoints support: `?page=1&limit=10&order_by=volume_usd&sort=desc`
+Two pagination models coexist:
 
-Pages are 1-indexed (first page is `page=1`). Max 1000 pages. Available `order_by` values: `volume_usd`, `liquidity_usd`, `price_usd`, `transactions`, `last_price_change_usd_24h`, `created_at`. Filter endpoints use `sort_by`/`sort_dir` instead of `order_by`/`sort`.
+- **Page-based** (`/networks/{network}/dexes`, `/networks/{network}/dexes/{dex}/pools`, `/networks/{network}/tokens/{token_address}/pools`): `?page=1&limit=10&order_by=volume_usd&sort=desc`. Pages are 1-indexed (first page is `page=1`). Max 1000 pages. `order_by` values on these endpoints: `volume_usd`, `price_usd`, `transactions`, `last_price_change_usd_24h`, `created_at`.
+- **Cursor-based** (the four `/search` endpoints): pass `limit` plus the `cursor` value from the previous response. Rows arrive under `results`, alongside `has_next_page` and `next_cursor`. `order_by` values are canonical: `volume_usd_24h`, `volume_usd_7d`, `volume_usd_30d`, `liquidity_usd`, `txns_24h`, `created_at`, `price_change_percentage_24h`, plus `price_usd` (pools only) and `fdv_usd` (tokens only). The legacy names (`volume_usd`, `transactions`, `last_price_change_usd_24h`) return HTTP 400 on `/search` endpoints.
 
 ## Timestamps
 

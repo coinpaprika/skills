@@ -7,7 +7,7 @@ Ready-to-use skills that give AI agents instant access to crypto market data. In
 | Skill | What it does | Data source |
 |-------|-------------|-------------|
 | **[coinpaprika-api](./coinpaprika-api/)** | CEX market data: 12,000+ coins, 350+ exchanges, tickers, OHLCV, historical prices | [api.coinpaprika.com](https://api.coinpaprika.com) |
-| **[dexpaprika-api](./dexpaprika-api/)** | DEX data: 34 chains, 30M+ pools, 27M+ tokens, real-time streaming | [api.dexpaprika.com](https://api.dexpaprika.com) |
+| **[dexpaprika-api](./dexpaprika-api/)** | DEX data: 35 chains, 34M+ pools, 32M+ tokens, real-time streaming | [api.dexpaprika.com](https://api.dexpaprika.com) |
 
 ## Installation
 
@@ -17,6 +17,14 @@ Ready-to-use skills that give AI agents instant access to crypto market data. In
 
 
 After installing, just ask your agent to query crypto data. It knows the APIs, CLI tools, endpoints, and response formats automatically.
+
+## Updating
+
+Skills do not auto-update. The copy installed into your agent is a snapshot of this repo at install time, and the APIs it documents keep evolving (endpoints get removed and return HTTP 410, response shapes change).
+
+Each `SKILL.md` carries a `version:` field in its frontmatter and a freshness check right under the title: a one-line `curl` that fetches the header of the latest copy from this repo so the agent can compare versions before relying on the skill. If the versions differ, re-run the install command to refresh your local copy:
+
+```npx skills add github.com/coinpaprika/skills/```
 
 ## What's inside each skill
 
@@ -41,7 +49,7 @@ After installing, just ask your agent to query crypto data. It knows the APIs, C
 - CLI: `coinpaprika-cli ticker btc-bitcoin`
 
 **DexPaprika:**
-- Get on-chain token prices across 34 blockchains
+- Get on-chain token prices across 35 blockchains
 - Query liquidity pools, DEXes, and trading activity
 - Historical OHLCV for any pool
 - Batch price queries (up to 10 tokens)
