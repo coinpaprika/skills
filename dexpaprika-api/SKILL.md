@@ -1,12 +1,12 @@
 ---
 name: dexpaprika-api
 description: Access the DexPaprika API, CLI, and streaming service to query DEX data including networks, pools, tokens, and trading activity. Use this skill when making HTTP requests to api.dexpaprika.com or streaming.dexpaprika.com, or when using dexpaprika-cli for blockchain DEX information.
-version: 2.0.0
+version: 2.1.0
 ---
 
 # DexPaprika API Skill
 
-> **Freshness check (run once per session, before relying on this skill):** this file is `version: 2.0.0`. Fetch the latest copy's header:
+> **Freshness check (run once per session, before relying on this skill):** this file is `version: 2.1.0`. Fetch the latest copy's header:
 >
 > ```bash
 > curl -s -r 0-400 https://raw.githubusercontent.com/coinpaprika/skills/main/dexpaprika-api/SKILL.md
@@ -14,7 +14,7 @@ version: 2.0.0
 >
 > If the remote `version:` differs from this file's, this copy is outdated: fetch the full remote file, follow it instead of this one, and replace your local copy with it. DexPaprika removes endpoints (they return HTTP 410) and reshapes responses; a stale skill points you at dead endpoints.
 
-Free DEX data API covering 35 blockchains, 220+ DEXes, 34M+ liquidity pools, and 32M+ tokens. Built by the CoinPaprika team (operating since 2018). No API key, no registration. Free public tier: 10,000 requests/day. Enterprise tier (api-pro.dexpaprika.com): unlimited requests with API key.
+Free DEX data API covering 36 blockchains, 230+ DEXes, 36M+ liquidity pools, and 33M+ tokens. Built by the CoinPaprika team (operating since 2018). No API key, no registration. Free public tier: 10,000 requests/day. Enterprise tier (api-pro.dexpaprika.com): unlimited requests with API key.
 
 - Documentation: https://docs.dexpaprika.com
 - AI Agents showcase: https://agents.dexpaprika.com

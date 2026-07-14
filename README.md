@@ -7,7 +7,7 @@ Ready-to-use skills that give AI agents instant access to crypto market data. In
 | Skill | What it does | Data source |
 |-------|-------------|-------------|
 | **[coinpaprika-api](./coinpaprika-api/)** | CEX market data: 12,000+ coins, 350+ exchanges, tickers, OHLCV, historical prices | [api.coinpaprika.com](https://api.coinpaprika.com) |
-| **[dexpaprika-api](./dexpaprika-api/)** | DEX data: 35 chains, 34M+ pools, 32M+ tokens, real-time streaming | [api.dexpaprika.com](https://api.dexpaprika.com) |
+| **[dexpaprika-api](./dexpaprika-api/)** | DEX data: 36 chains, 36M+ pools, 33M+ tokens, real-time streaming | [api.dexpaprika.com](https://api.dexpaprika.com) |
 
 ## Installation
 
@@ -49,7 +49,7 @@ Each `SKILL.md` carries a `version:` field in its frontmatter and a freshness ch
 - CLI: `coinpaprika-cli ticker btc-bitcoin`
 
 **DexPaprika:**
-- Get on-chain token prices across 35 blockchains
+- Get on-chain token prices across 36 blockchains
 - Query liquidity pools, DEXes, and trading activity
 - Historical OHLCV for any pool
 - Batch price queries (up to 10 tokens)
