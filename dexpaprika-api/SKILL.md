@@ -115,7 +115,7 @@ curl -s "https://api.dexpaprika.com/networks/ethereum/tokens/0xc02aaa39b223fe8d0
 
 **Removed endpoints (HTTP 410):** `/networks/{network}/pools`, `/pools`, `/networks/{network}/pools/filter`, `/networks/{network}/tokens/filter`, `/networks/{network}/tokens/top`, and `/networks/{network}/tokens/{token_address}/pools` are gone. They return HTTP 410 with a pointer to the `/search` replacement. Do not call them.
 
-**`token_address` is network-scoped only:** the cross-network `GET /pools/search` accepts `token_address` but silently ignores it (results are unfiltered); to find pools containing a token, use the per-network `GET /networks/{network}/pools/search`. An unknown address returns HTTP 200 with empty `results`, and a repeated `token_address` param is last-wins, not a pair filter.
+**`token_address` is network-scoped only:** the cross-network `GET /pools/search` accepts `token_address` but silently ignores it (results are unfiltered); to find pools containing a token, use the per-network `GET /networks/{network}/pools/search`. An unknown address returns HTTP 200 with empty `results`. Repeating `token_address` does not act as a pair filter; the API uses only one of the values (not guaranteed by order).
 
 For the full OpenAPI 3.1 specification with all schemas, parameters, and response types, read `references/openapi.yml`.
 

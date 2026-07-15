@@ -364,9 +364,10 @@ paths:
             network. Replaces the removed
             `/networks/{network}/tokens/{token_address}/pools` endpoint. An
             unknown address returns HTTP 200 with an empty result set, not an
-            error. If the parameter is repeated, only the last value is
-            applied; it is not a pair filter. This filter is network-scoped
-            only; the cross-network `/pools/search` accepts it but ignores it.
+            error. Repeating the parameter does not act as a pair filter; the
+            API uses only one of the values (not guaranteed by order). This
+            filter is network-scoped only; the cross-network `/pools/search`
+            accepts it but ignores it.
           example: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
         - name: order_by
           in: query
