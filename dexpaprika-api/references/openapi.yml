@@ -354,6 +354,20 @@ paths:
           in: query
           schema:
             type: string
+        - name: token_address
+          in: query
+          required: false
+          schema:
+            type: string
+          description: >-
+            Restrict results to pools that contain this token on the given
+            network. Replaces the removed
+            `/networks/{network}/tokens/{token_address}/pools` endpoint. An
+            unknown address returns HTTP 200 with an empty result set, not an
+            error. If the parameter is repeated, only the last value is
+            applied; it is not a pair filter. This filter is network-scoped
+            only; the cross-network `/pools/search` accepts it but ignores it.
+          example: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
         - name: order_by
           in: query
           schema:
@@ -398,6 +412,8 @@ paths:
       description: |
         Retrieves a paginated list of pools matching the advanced search criteria across multiple chains.
         Supports various filters and cursor-based pagination.
+        The `token_address` filter is not supported here; it is accepted but silently ignored.
+        To find pools containing a token, use the network-scoped `/networks/{network}/pools/search`.
       parameters:
         - name: chains
           in: query
@@ -1516,117 +1532,17 @@ paths:
       tags:
         - Tokens
       summary: Get top X pools for a token.
-      description: >
-        Retrieves a paginated list of liquidity pools that involve the specified
-        token,
-
-        including details like current price, volume in USD, and tokens present
-        in each pool.
-
-        Useful for analytics, DEX front-ends, or portfolio tracking.
+      deprecated: true
+      description: Removed. Use `/networks/{network}/pools/search` with the
+        `token_address` query parameter instead. The old `reorder` and
+        `address` (second-token pair filter) parameters have no replacement.
       parameters:
         - $ref: "#/components/parameters/networkParam"
         - $ref: "#/components/parameters/tokenAddressParam"
-        - $ref: "#/components/parameters/sortParam"
-        - $ref: "#/components/parameters/orderParam"
-        - name: reorder
-          in: query
-          required: false
-          schema:
-            type: boolean
-          description: If true, reorders the pool so that the token provided in
-            `tokenAddressParam` becomes the primary token for all metrics and
-            calculations. Useful when the provided token is not the first token
-            in the pool.
-        - name: address
-          in: query
-          required: false
-          schema:
-            type: string
-          description: Filter pools that contain this additional token address.
-          example: JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN
       responses:
-        "200":
-          description: successful operation
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  pools:
-                    type: array
-                    description: A list of pool objects where the queried token is found.
-                    items:
-                      $ref: "#/components/schemas/PoolWithPrices"
-                  page_info:
-                    type: object
-                    description: Details about the current page of results.
-                    properties:
-                      limit:
-                        type: integer
-                        description: Number of items returned per page.
-                      page:
-                        type: integer
-                        description: The current page index.
-                      total_items:
-                        type: integer
-                        description: Total number of pools matching the token query.
-                      total_pages:
-                        type: integer
-                        description: Total number of pages available.
-              example:
-                pools:
-                  - id: C1MgLojNLWBKADvu9BHdtgzz1oZX4dZ5zGdGcgvvW8Wz
-                    dex_id: whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc
-                    dex_name: Orca
-                    chain: solana
-                    volume_usd: 105911239.86515124
-                    created_at: "2024-01-31T04:35:25.000Z"
-                    created_at_block_number: 245197261
-                    transactions: 86702
-                    price_usd: 1.0210156606745167
-                    last_price_change_usd_5m: -0.35550231159026024
-                    last_price_change_usd_1h: -0.46553223706307906
-                    last_price_change_usd_24h: -14.938708407216472
-                    fee: 0
-                    tokens:
-                      - id: JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN
-                        name: Jupiter
-                        symbol: JUP
-                        chain: solana
-                        decimals: 6
-                        added_at: "2024-09-11T04:37:20.000Z"
-                      - id: So11111111111111111111111111111111111111112
-                        name: Wrapped SOL
-                        symbol: SOL
-                        chain: solana
-                        decimals: 9
-                        added_at: "2024-10-04T08:30:05.000Z"
-                page_info:
-                  limit: 100
-                  page: 1
-                  total_items: 251
-                  total_pages: 3
-        "400":
-          description: The specified network or token address is invalid.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: Invalid network or token address.
-        "404":
-          description: Network not found or token not found.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: Token not found or no pools found for this token.
+        "410":
+          description: Removed. Use `/networks/{network}/pools/search` with the
+            `token_address` query parameter instead.
   /search:
     get:
       operationId: search

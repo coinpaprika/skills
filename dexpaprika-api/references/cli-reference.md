@@ -41,7 +41,7 @@ Free DEX data from the terminal. 36 chains, 230+ DEXes, 33M+ tokens, 36M+ pools.
 
 ## Search-backed commands and sort fields
 
-`pools`, `pool-filter`, `top-tokens`, and `filter-tokens` call the API's `/search` endpoints (`/networks/{network}/pools/search`, `/networks/{network}/tokens/search`) under the hood. The command names and flags did not change, and the CLI maps legacy sort-field values to the canonical names the search endpoints require:
+`pools`, `pool-filter`, `token-pools`, `top-tokens`, and `filter-tokens` call the API's `/search` endpoints (`/networks/{network}/pools/search`, `/networks/{network}/tokens/search`) under the hood. `token-pools` passes its token argument as the `token_address` query parameter on the network-scoped pool search; the filter only exists there, so the command always needs a network argument. The command names did not change, and the CLI maps legacy sort-field values to the canonical names the search endpoints require:
 
 | Legacy value | Canonical value sent to the API |
 |--------------|--------------------------------|
@@ -53,7 +53,7 @@ Free DEX data from the terminal. 36 chains, 230+ DEXes, 33M+ tokens, 36M+ pools.
 | `liquidity` | `liquidity_usd` |
 | `fdv` | `fdv_usd` |
 
-Canonical values pass through unchanged. Unknown values fall back to `volume_usd_24h`. Note: token search rejects `price_usd` ordering, so `top-tokens --order-by price_usd` falls back to volume. The search endpoints are cursor-paginated, so `--page` has no effect on these four commands; use `--limit` and the CLI's next-cursor hint.
+Canonical values pass through unchanged. Unknown values fall back to `volume_usd_24h`. Note: token search rejects `price_usd` ordering, so `top-tokens --order-by price_usd` falls back to volume. The search endpoints are cursor-paginated, so `--page` has no effect on these commands; use `--limit` and the CLI's next-cursor hint.
 
 ```bash
 # Sort flags: pools/top-tokens use --order-by/--sort, pool-filter/filter-tokens use --sort-by/--sort-dir
