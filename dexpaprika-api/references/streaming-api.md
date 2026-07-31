@@ -1,6 +1,8 @@
 # DexPaprika Streaming API Reference
 
-Two SSE feeds share one transport. No API key required.
+Two SSE feeds share one transport. No API key required to start.
+
+Streaming is metered the same way as REST: each update delivered counts as one request against the monthly quota. Updates are pushed only when values change, so a quiet market costs almost nothing while a fast-moving one draws down quota like polling would. Connection caps: 25 subscriptions per connection, 10 concurrent streams per IP.
 
 | Feed | Endpoint | Cadence | Use for |
 |---|---|---|---|

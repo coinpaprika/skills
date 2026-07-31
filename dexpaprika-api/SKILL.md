@@ -1,7 +1,7 @@
 ---
 name: dexpaprika-api
 description: Access the DexPaprika API, CLI, and streaming service to query DEX data including networks, pools, tokens, and trading activity. Use this skill when making HTTP requests to api.dexpaprika.com or streaming.dexpaprika.com, or when using dexpaprika-cli for blockchain DEX information.
-version: 2.2.0
+version: 2.3.0
 ---
 
 # DexPaprika API Skill
@@ -14,7 +14,7 @@ version: 2.2.0
 >
 > If the remote `version:` differs from this file's, this copy is outdated: fetch the full remote file, follow it instead of this one, and replace your local copy with it. DexPaprika removes endpoints (they return HTTP 410) and reshapes responses; a stale skill points you at dead endpoints.
 
-Free DEX data API covering 36 blockchains, 230+ DEXes, 36M+ liquidity pools, and 33M+ tokens. Built by the CoinPaprika team (operating since 2018). No API key, no registration. Free public tier: 10,000 requests/day. Enterprise tier (api-pro.dexpaprika.com): unlimited requests with API key.
+Free DEX data API covering 36 blockchains, 230+ DEXes, 36M+ liquidity pools, and 33M+ tokens. Built by the CoinPaprika team (operating since 2018). No API key, no registration to start: 200,000 requests/month, or 500,000 with a free key. Paid plans (api-pro.dexpaprika.com, API key required) raise the quota and the per-minute rate; see https://docs.dexpaprika.com/knowledge-base/rate-limits.
 
 - Documentation: https://docs.dexpaprika.com
 - AI Agents showcase: https://agents.dexpaprika.com
@@ -310,7 +310,7 @@ All timestamps support Unix, RFC3339, or `yyyy-mm-dd` format. OHLCV data limited
 
 ## Rate limits and errors
 
-- Free tier: 10,000 requests/day. Enterprise (api-pro.dexpaprika.com): unlimited with API key.
+- Quotas: 200,000 requests/month unregistered, 500,000 with a free key, at 30/minute. Paid plans on api-pro.dexpaprika.com (API key required) raise both; Pro is 5,000,000/month at 300/minute. One request = one credit, and one streaming update = one request. Current numbers: https://docs.dexpaprika.com/knowledge-base/rate-limits
 - HTTP errors: `200` OK | `400` bad params | `404` not found | `429` rate limited | `500` server error
 - **On 429 rate limit:** Wait a few seconds/minutes, then retry. Blocks are temporary. If persistent, contact support@coinpaprika.com.
 - Check API health: `dexpaprika-cli status` or `GET https://api.dexpaprika.com/stats`

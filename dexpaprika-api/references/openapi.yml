@@ -30,7 +30,7 @@ info:
 
     ```bash
 
-    curl -X GET "https://api.dexpaprika.com/networks/ethereum/pools" | jq
+    curl -X GET "https://api.dexpaprika.com/networks/ethereum/pools/search" | jq
 
     ```
 
@@ -69,7 +69,7 @@ info:
     import requests
 
 
-    url = "https://api.dexpaprika.com/networks/ethereum/pools"
+    url = "https://api.dexpaprika.com/networks/ethereum/pools/search"
 
 
     response = requests.get(url)
@@ -90,7 +90,7 @@ info:
 
 
     curl_setopt_array($curl, array(
-      CURLOPT_URL => "https://api.dexpaprika.com/networks/ethereum/pools",
+      CURLOPT_URL => "https://api.dexpaprika.com/networks/ethereum/pools/search",
       CURLOPT_RETURNTRANSFER => true
     ));
 
@@ -126,7 +126,7 @@ info:
     public class DexPaprikaExample {
         public static void main(String[] args) {
             try {
-                URL url = new URL("https://api.dexpaprika.com/networks/ethereum/pools");
+                URL url = new URL("https://api.dexpaprika.com/networks/ethereum/pools/search");
                 HttpURLConnection con = (HttpURLConnection) url.openConnection();
                 con.setRequestMethod("GET");
                 int responseCode = con.getResponseCode();
@@ -168,7 +168,7 @@ info:
 
     func main() {
         client := &http.Client{}
-        req, err := http.NewRequest("GET", "https://api.dexpaprika.com/networks/ethereum/pools", nil)
+        req, err := http.NewRequest("GET", "https://api.dexpaprika.com/networks/ethereum/pools/search", nil)
         if err != nil {
             log.Fatal(err)
         }
@@ -211,7 +211,7 @@ info:
         static async Task Main()
         {
             using var client = new HttpClient();
-            var url = "https://api.dexpaprika.com/networks/ethereum/pools";
+            var url = "https://api.dexpaprika.com/networks/ethereum/pools/search";
             
             var response = await client.GetAsync(url);
             
