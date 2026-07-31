@@ -60,7 +60,7 @@ Each `SKILL.md` carries a `version:` field in its frontmatter and a freshness ch
 ## No API key needed
 
 Both APIs have free tiers that work without authentication:
-- **DexPaprika:** 10,000 requests/day, no key required
+- **DexPaprika:** 200,000 requests/month, no key required (500,000 with a free key; paid plans raise it further)
 - **CoinPaprika:** 20,000 requests/month, no key required
 
 ## Other integration options
