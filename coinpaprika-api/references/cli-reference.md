@@ -1,6 +1,6 @@
 # CoinPaprika CLI Reference
 
-Crypto market data from the terminal. 8,000+ coins, real-time prices, OHLCV, exchanges. Free tier included.
+Crypto market data from the terminal. 12,000+ cryptocurrencies, real-time prices, OHLCV, exchanges. Free tier included.
 
 - GitHub: https://github.com/coinpaprika/coinpaprika-cli
 - Install: `curl -sSL https://raw.githubusercontent.com/coinpaprika/coinpaprika-cli/main/install.sh | sh`
@@ -15,7 +15,7 @@ Crypto market data from the terminal. 8,000+ coins, real-time prices, OHLCV, exc
 
 Free tier works without a key (20,000 calls/month, 2,000 assets). For paid tiers:
 
-1. **Config file:** `coinpaprika-cli onboard` — saves to `~/.coinpaprika/config.json`
+1. **Config file:** `coinpaprika-cli onboard`, saves to `~/.coinpaprika/config.json`
 2. **Environment variable:** `export COINPAPRIKA_API_KEY=your-key`
 3. **CLI flag:** `coinpaprika-cli --api-key your-key ticker btc-bitcoin`
 

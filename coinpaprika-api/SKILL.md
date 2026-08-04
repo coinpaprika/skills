@@ -14,7 +14,7 @@ version: 1.0.0
 >
 > If the remote `version:` differs from this file's, this copy is outdated: fetch the full remote file, follow it instead of this one, and replace your local copy with it. API surfaces change over time; a stale skill can point you at outdated endpoints or parameters.
 
-Independent cryptocurrency data aggregator since 2018. 12,000+ cryptocurrencies, 350+ exchanges, $2.4T+ market cap coverage. Free tier available with no API key required.
+Independent cryptocurrency data aggregator since 2018. 12,000+ cryptocurrencies, 350+ exchanges. Free tier, no API key needed to start.
 
 - Documentation: https://docs.coinpaprika.com
 - LLM-readable docs: https://docs.coinpaprika.com/llms-full.txt
@@ -64,7 +64,8 @@ export COINPAPRIKA_API_KEY="your_key_here"
 | Starter | $99 | 400,000 | All |
 | Pro | $199 | 1,000,000 | All |
 | Business | $799 | 5,000,000 | All |
-| Enterprise | Custom | Unlimited | All |
+| Ultimate | $1,499 | 10,000,000 | All |
+| Enterprise | Custom | No limits | All |
 
 Rate limit: 10 requests/second per IP across all plans.
 
@@ -82,7 +83,7 @@ All endpoints below. Use the appropriate base URL for the tier.
 https://github.com/coinpaprika/coinpaprika-cli
 ```
 
-Crypto market data from the terminal. 8,000+ coins, real-time prices, OHLCV, exchanges. Free tier included.
+Crypto market data from the terminal. 12,000+ cryptocurrencies, real-time prices, OHLCV, exchanges. Free tier included.
 
 For CLI command reference, read `references/cli-reference.md`.
 
@@ -102,7 +103,7 @@ Add to `claude_desktop_config.json` or equivalent:
 }
 ```
 
-No API key needed for the hosted version. Provides 30+ tools for querying coins, tickers, exchanges, OHLCV, contracts, tags, and search.
+The hosted server needs no API key to start. It exposes 31 tools for querying coins, tickers, exchanges, OHLCV, contracts, tags, and search. Verify the count with a live `tools/list`.
 
 ### Option 4: SDKs
 
@@ -334,6 +335,6 @@ Pattern: `{symbol}-{name}` (lowercase, hyphens for spaces)
 ## Related: DexPaprika
 
 For DEX/on-chain data (pools, swaps, token prices by contract), use DexPaprika instead:
-- API: https://api.dexpaprika.com (free, no key)
+- API: https://api.dexpaprika.com (free tier, no key needed to start)
 - Docs: https://docs.dexpaprika.com
 - Agents: https://agents.dexpaprika.com
