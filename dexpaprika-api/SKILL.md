@@ -70,7 +70,7 @@ dexpaprika-cli prices ethereum --tokens 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756c
 # Stream token prices, pushed when a swap moves the price
 dexpaprika-cli stream ethereum 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2
 
-# Stream real-time pool reserves (block-level deltas)
+# Stream pool reserve changes, emitted when a swap moves the reserves
 dexpaprika-cli stream-reserves ethereum 0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640 --method pool_reserves
 
 # API health check
@@ -139,13 +139,13 @@ No API key needed to start. Provides 17 tools for querying networks, pools, toke
 
 Documentation: https://docs.dexpaprika.com/ai-integration/hosted-mcp-server
 
-### Option 4: Streaming API (real-time prices + pool reserves)
+### Option 4: Streaming API (token prices + pool reserves)
 
 Base URL: `https://streaming.dexpaprika.com`
 
 Two SSE feeds share one transport:
 - `/sse/prices`: token price updates, pushed when a swap moves the price. Updates are swap-driven, not clock-driven or per block: a quiet chain can go minutes without emitting anything.
-- `/sse/reserves`: block-level pool reserve updates with USD-denominated deltas.
+- `/sse/reserves`: pool reserve updates with USD-denominated deltas, emitted when a swap changes the pool's reserves, not on every block.
 
 **Limits:** 25 subscriptions per POST connection. 10 concurrent SSE streams per IP. A `ping` event lands every 15 s. Keyless streaming covers 36 showcase tokens, one per chain; a free API key opens streaming for any token.
 
