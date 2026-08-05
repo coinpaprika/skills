@@ -356,10 +356,13 @@ paths:
           schema:
             type: string
           description: >-
-            Restrict results to pools on this DEX. Accepts either the dex id
-            (`curve`) or the display name (`Curve`); prefer the id. Valid values
-            come from `GET /networks/{network}/dexes`, which returns both
-            `dex_id` and `dex_name` on each object. Replaces the removed
+            Restrict results to pools on this DEX. Takes the dex id
+            (`uniswap_v3`), matched case-insensitively, not the human display
+            name. Valid values come from `GET /networks/{network}/dexes`: pass
+            the `dex_id` field of that response. Passing its `dex_name` field
+            instead, a display name like `Uniswap V3`, returns HTTP 200 with an
+            empty `results` array rather than an error, so a wrong value looks
+            like a DEX with no pools. Replaces the removed
             `/networks/{network}/dexes/{dex}/pools` endpoint, which carried the
             DEX as a path segment.
         - name: token_address
@@ -507,10 +510,13 @@ paths:
           schema:
             type: string
           description: >-
-            Restrict results to pools on this DEX. Accepts either the dex id
-            (`curve`) or the display name (`Curve`); prefer the id. Valid values
-            come from `GET /networks/{network}/dexes`, which returns both
-            `dex_id` and `dex_name` on each object. Replaces the removed
+            Restrict results to pools on this DEX. Takes the dex id
+            (`uniswap_v3`), matched case-insensitively, not the human display
+            name. Valid values come from `GET /networks/{network}/dexes`: pass
+            the `dex_id` field of that response. Passing its `dex_name` field
+            instead, a display name like `Uniswap V3`, returns HTTP 200 with an
+            empty `results` array rather than an error, so a wrong value looks
+            like a DEX with no pools. Replaces the removed
             `/networks/{network}/dexes/{dex}/pools` endpoint, which carried the
             DEX as a path segment.
         - name: order_by
@@ -900,8 +906,10 @@ paths:
       summary: Get top X pools on a network's DEX.
       deprecated: true
       description: Removed. Use `/networks/{network}/pools/search` with the
-        `dex_name` query parameter instead. `dex_name` accepts either the dex id
-        (`curve`) or the display name (`Curve`); prefer the id. Rows arrive under
+        `dex_name` query parameter instead. `dex_name` takes the dex id
+        (`uniswap_v3`) from `GET /networks/{network}/dexes`, matched
+        case-insensitively; a display name like `Uniswap V3` returns HTTP 200
+        with an empty `results` array rather than an error. Rows arrive under
         `results` instead of `pools`, pagination is `cursor` plus `has_next_page`
         and `next_cursor` instead of `page` and `page_info`, and the 24h volume
         field is `volume_usd_24h`. There is no bare `volume_usd` on the
