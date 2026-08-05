@@ -20,7 +20,7 @@ DEX data from the terminal. 36 chains, 230+ DEXes, 33M+ tokens, 36M+ pools. Free
 | `pools` | List top pools on a network | `dexpaprika-cli pools ethereum --limit 10` |
 | `pool-filter` | Filter pools by volume, liquidity, txns, creation date | `dexpaprika-cli pool-filter ethereum --volume-24h-min 100000` |
 | `pool` | Get detailed info about a specific pool | `dexpaprika-cli pool ethereum 0x88e6...` |
-| `dex-pools` | List pools on a specific DEX | `dexpaprika-cli dex-pools ethereum uniswap_v3` |
+| `dex-pools` | List pools on a specific DEX. Broken as of CLI 0.4.2: the endpoint behind it was removed and the command returns HTTP 410. Call the search endpoint directly until a fixed CLI ships | `curl "https://api.dexpaprika.com/networks/ethereum/pools/search?dex_name=uniswap_v3"` |
 | `transactions` | Get recent transactions for a pool | `dexpaprika-cli transactions ethereum 0x88e6...` |
 | `pool-ohlcv` | Get OHLCV data for a pool | `dexpaprika-cli pool-ohlcv ethereum 0x88e6... --start 2025-01-27` |
 | `token` | Get detailed info about a token | `dexpaprika-cli token ethereum 0xc02a...` |
