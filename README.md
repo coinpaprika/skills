@@ -53,15 +53,15 @@ Each `SKILL.md` carries a `version:` field in its frontmatter and a freshness ch
 - Query liquidity pools, DEXes, and trading activity
 - Historical OHLCV for any pool
 - Batch price queries (up to 10 tokens)
-- Real-time SSE price streaming (~1s updates)
+- SSE price streaming, pushed when a swap moves the price
 - Search tokens, pools, and DEXes across all chains
 - CLI: `dexpaprika-cli token ethereum 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2`
 
-## No API key needed
+## Free tiers, no key to start
 
-Both APIs have free tiers that work without authentication:
-- **DexPaprika:** 200,000 requests/month, no key required (500,000 with a free key; paid plans raise it further)
-- **CoinPaprika:** 20,000 requests/month, no key required
+Both APIs have a free tier that works without authentication:
+- **DexPaprika:** 200,000 credits/month keyless per IP, 500,000 with a free key, at 30 requests/minute. Data is delayed up to 15 seconds on the free tier. Pro is $99/month for 5,000,000 credits at 300/minute with real-time data. One request costs one credit.
+- **CoinPaprika:** 20,000 calls/month keyless. Paid plans start at $99/month for 400,000 calls.
 
 ## Other integration options
 
@@ -76,7 +76,7 @@ These skills are for Claude Code agents. For other AI tools:
 
 ## SDKs
 
-**DexPaprika:** [Go](https://github.com/coinpaprika/dexpaprika-sdk-go) | [Python](https://github.com/coinpaprika/dexpaprika-sdk-python) | [TypeScript](https://github.com/coinpaprika/dexpaprika-sdk-ts) | [PHP](https://github.com/coinpaprika/dexpaprika-sdk-php) | [Rust](https://github.com/coinpaprika/dexpaprika-sdk-rust)
+**DexPaprika:** [Go](https://github.com/coinpaprika/dexpaprika-sdk-go) | [Python](https://github.com/coinpaprika/dexpaprika-sdk-python) | [TypeScript](https://github.com/coinpaprika/dexpaprika-sdk-ts) | [PHP](https://github.com/coinpaprika/dexpaprika-sdk-php)
 
 **CoinPaprika:** [Go](https://github.com/coinpaprika/coinpaprika-api-go-client) | [Python](https://github.com/coinpaprika/coinpaprika-api-python-client) | [Node.js](https://github.com/coinpaprika/coinpaprika-api-nodejs-client) | [PHP](https://github.com/coinpaprika/coinpaprika-api-php-client) | [Swift](https://github.com/coinpaprika/coinpaprika-api-swift-client) | [Kotlin](https://github.com/coinpaprika/coinpaprika-api-kotlin-client)
 

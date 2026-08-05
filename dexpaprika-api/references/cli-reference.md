@@ -1,6 +1,6 @@
 # DexPaprika CLI Reference
 
-Free DEX data from the terminal. 36 chains, 230+ DEXes, 33M+ tokens, 36M+ pools. No API key needed.
+DEX data from the terminal. 36 chains, 230+ DEXes, 33M+ tokens, 36M+ pools. Free tier, no API key needed to start.
 
 - GitHub: https://github.com/coinpaprika/dexpaprika-cli
 - Install: `curl -sSL https://raw.githubusercontent.com/coinpaprika/dexpaprika-cli/main/install.sh | sh`

@@ -6,7 +6,7 @@ version: 2.3.0
 
 # DexPaprika API Skill
 
-> **Freshness check (run once per session, before relying on this skill):** this file is `version: 2.2.0`. Fetch the latest copy's header:
+> **Freshness check (run once per session, before relying on this skill):** this file is `version: 2.3.0`. Fetch the latest copy's header:
 >
 > ```bash
 > curl -s -r 0-400 https://raw.githubusercontent.com/coinpaprika/skills/main/dexpaprika-api/SKILL.md
@@ -14,7 +14,7 @@ version: 2.3.0
 >
 > If the remote `version:` differs from this file's, this copy is outdated: fetch the full remote file, follow it instead of this one, and replace your local copy with it. DexPaprika removes endpoints (they return HTTP 410) and reshapes responses; a stale skill points you at dead endpoints.
 
-Free DEX data API covering 36 blockchains, 230+ DEXes, 36M+ liquidity pools, and 33M+ tokens. Built by the CoinPaprika team (operating since 2018). No API key, no registration to start: 200,000 requests/month, or 500,000 with a free key. Paid plans (api-pro.dexpaprika.com, API key required) raise the quota and the per-minute rate; see https://docs.dexpaprika.com/knowledge-base/rate-limits.
+DEX data API covering 36 blockchains, 230+ DEXes, 36M+ liquidity pools, and 33M+ tokens, over 96% of on-chain DEX volume. Built by the CoinPaprika team (operating since 2018). No API key and no registration to start: the free tier is 200,000 credits/month keyless per IP, or 500,000 with a free key, at 30 requests/minute, with data delayed up to 15 seconds. Pro is $99/month for 5,000,000 credits at 300/minute with real-time data, on api-pro.dexpaprika.com with an API key. See https://docs.dexpaprika.com/knowledge-base/rate-limits.
 
 - Documentation: https://docs.dexpaprika.com
 - AI Agents showcase: https://agents.dexpaprika.com
@@ -67,10 +67,10 @@ dexpaprika-cli pool-filter ethereum --volume-24h-min 500000 --liquidity-usd-min 
 # Batch token prices
 dexpaprika-cli prices ethereum --tokens 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2,0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48 --output json --raw
 
-# Stream real-time prices (~1s updates)
+# Stream token prices, pushed when a swap moves the price
 dexpaprika-cli stream ethereum 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2
 
-# Stream real-time pool reserves (block-level deltas)
+# Stream pool reserve changes, emitted when a swap moves the reserves
 dexpaprika-cli stream-reserves ethereum 0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640 --method pool_reserves
 
 # API health check
@@ -85,7 +85,7 @@ For the full CLI command reference, read `references/cli-reference.md`.
 
 Base URL: `https://api.dexpaprika.com`
 
-No authentication required. All responses are JSON.
+No API key needed to start on the free tier. All responses are JSON.
 
 ```bash
 curl -s "https://api.dexpaprika.com/networks/ethereum/tokens/0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2" | jq
@@ -135,19 +135,19 @@ Add to `claude_desktop_config.json` or equivalent:
 }
 ```
 
-No API key needed. Provides tools for querying networks, pools, tokens, OHLCV, transactions, and search.
+No API key needed to start. Provides 17 tools for querying networks, pools, tokens, OHLCV, transactions, and search. Verify the count with a live `tools/list`.
 
 Documentation: https://docs.dexpaprika.com/ai-integration/hosted-mcp-server
 
-### Option 4: Streaming API (real-time prices + pool reserves)
+### Option 4: Streaming API (token prices + pool reserves)
 
 Base URL: `https://streaming.dexpaprika.com`
 
 Two SSE feeds share one transport:
-- `/sse/prices`: live token price updates (~1 s cadence per asset).
-- `/sse/reserves`: block-level pool reserve updates with USD-denominated deltas.
+- `/sse/prices`: token price updates, pushed when a swap moves the price. Updates are swap-driven, not clock-driven or per block: a quiet chain can go minutes without emitting anything.
+- `/sse/reserves`: pool reserve updates with USD-denominated deltas, emitted when a swap changes the pool's reserves, not on every block.
 
-**Limits:** 25 subscriptions per POST connection. 10 concurrent SSE streams per IP. A `ping` event lands every 15 s.
+**Limits:** 25 subscriptions per POST connection. 10 concurrent SSE streams per IP. A `ping` event lands every 15 s. Keyless streaming covers 36 showcase tokens, one per chain; a free API key opens streaming for any token.
 
 Single token price (GET):
 ```bash
@@ -194,7 +194,6 @@ For the full streaming reference (events, errors, parser patterns), read `refere
 | Python | https://github.com/coinpaprika/dexpaprika-sdk-python |
 | TypeScript | https://github.com/coinpaprika/dexpaprika-sdk-ts |
 | PHP | https://github.com/coinpaprika/dexpaprika-sdk-php |
-| Rust | https://github.com/coinpaprika/dexpaprika-sdk-rust |
 
 ---
 
@@ -310,7 +309,7 @@ All timestamps support Unix, RFC3339, or `yyyy-mm-dd` format. OHLCV data limited
 
 ## Rate limits and errors
 
-- Quotas: 200,000 requests/month unregistered, 500,000 with a free key, at 30/minute. Paid plans on api-pro.dexpaprika.com (API key required) raise both; Pro is 5,000,000/month at 300/minute. One request = one credit, and one streaming update = one request. Current numbers: https://docs.dexpaprika.com/knowledge-base/rate-limits
+- Quotas: 200,000 credits/month keyless per IP, 500,000 with a free key, at 30/minute, with data delayed up to 15 seconds. Pro is $99/month for 5,000,000 credits at 300/minute with real-time data, on api-pro.dexpaprika.com with an API key. One request = one credit; a batch endpoint costs one credit per item, and each delivered streaming update costs one credit. Current numbers: https://docs.dexpaprika.com/knowledge-base/rate-limits
 - HTTP errors: `200` OK | `400` bad params | `404` not found | `429` rate limited | `500` server error
 - **On 429 rate limit:** Wait a few seconds/minutes, then retry. Blocks are temporary. If persistent, contact support@coinpaprika.com.
 - Check API health: `dexpaprika-cli status` or `GET https://api.dexpaprika.com/stats`

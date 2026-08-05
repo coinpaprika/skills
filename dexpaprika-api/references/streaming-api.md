@@ -2,12 +2,12 @@
 
 Two SSE feeds share one transport. No API key required to start.
 
-Streaming is metered the same way as REST: each update delivered counts as one request against the monthly quota. Updates are pushed only when values change, so a quiet market costs almost nothing while a fast-moving one draws down quota like polling would. Connection caps: 25 subscriptions per connection, 10 concurrent streams per IP.
+Streaming is metered the same way as REST: each update delivered counts as one credit against the monthly quota. Updates are swap-driven, not clock-driven and not per block: they are pushed only when a swap moves the value, so a quiet chain can go minutes without emitting anything while a fast-moving one draws down quota like polling would. Connection caps: 25 subscriptions per connection, 10 concurrent streams per IP.
 
-| Feed | Endpoint | Cadence | Use for |
+| Feed | Endpoint | When it fires | Use for |
 |---|---|---|---|
-| Token prices | `/sse/prices` | ~1s per asset | tickers, portfolios, alerts |
-| Pool reserves | `/sse/reserves` | block-level | liquidity dashboards, MEV, real-time TVL |
+| Token prices | `/sse/prices` | when a swap moves the price | tickers, portfolios, alerts |
+| Pool reserves | `/sse/reserves` | when a swap changes the pool's reserves | liquidity dashboards, MEV, real-time TVL |
 
 Base URL: `https://streaming.dexpaprika.com`
 
