@@ -63,37 +63,44 @@ dexpaprika-cli pool-filter ethereum --volume-24h-min 500000 --sort-by liquidity_
 dexpaprika-cli filter-tokens solana --fdv-min 1000000 --sort-by liquidity_usd
 ```
 
-## Price-change windows (pools only)
+## Price-change windows
 
-`pools` and `pool-filter` sort and filter on four price-change windows: 24h, 6h, 1h and 5m. Three of the sort values are recent additions, and all three are canonical, so they pass through the mapping table above unchanged:
+`pools` and `pool-filter` sort and filter on four price-change windows: 24h, 6h, 1h and 5m. The three short windows and all eight filter flags land in the CLI release after 0.4.4, so check your version before you script against them. Sort values are the canonical API names and pass through the mapping table above unchanged:
 
+- `price_change_percentage_24h`
 - `price_change_percentage_6h`
 - `price_change_percentage_1h`
 - `price_change_percentage_5m`
 
-The matching filter flags follow the same kebab-case rule as `--txns-24h-min`, one flag per API parameter:
+The filter flags drop the `percentage` noise word, the way `--volume-24h-min` drops the `usd` from `volume_usd_24h_min`:
 
 | Flag | API parameter |
 |------|---------------|
-| `--price-change-percentage-24h-min`, `--price-change-percentage-24h-max` | `price_change_percentage_24h_min`, `_max` |
-| `--price-change-percentage-6h-min`, `--price-change-percentage-6h-max` | `price_change_percentage_6h_min`, `_max` |
-| `--price-change-percentage-1h-min`, `--price-change-percentage-1h-max` | `price_change_percentage_1h_min`, `_max` |
-| `--price-change-percentage-5m-min`, `--price-change-percentage-5m-max` | `price_change_percentage_5m_min`, `_max` |
+| `--price-change-24h-min`, `--price-change-24h-max` | `price_change_percentage_24h_min`, `_max` |
+| `--price-change-6h-min`, `--price-change-6h-max` | `price_change_percentage_6h_min`, `_max` |
+| `--price-change-1h-min`, `--price-change-1h-max` | `price_change_percentage_1h_min`, `_max` |
+| `--price-change-5m-min`, `--price-change-5m-max` | `price_change_percentage_5m_min`, `_max` |
 
-Values are signed percentages. Downside screens are the common case, so pass negatives with `=` to keep the argument parser from reading `-20` as another flag:
+There is no `--price-change-percentage-1h-min` spelling. The long form exits with `error: unexpected argument '--price-change-percentage-1h-min' found` and a tip pointing at the short one.
+
+Values are signed percentages, and downside screens are the common case. The eight flags are declared with `allow_negative_numbers`, so `--price-change-24h-max -20` parses as written. The `=` form works too if you prefer to be explicit.
 
 ```bash
 # Biggest 1h movers on ethereum
 dexpaprika-cli pools ethereum --order-by price_change_percentage_1h --sort desc --limit 10
 
-# Pools down 20 percent or more in the last hour
-dexpaprika-cli pool-filter ethereum --price-change-percentage-1h-max=-20 --limit 10
+# Pools down 20 percent or more over the last 24h
+dexpaprika-cli pool-filter ethereum --price-change-24h-max -20 --limit 10
 
 # Pools up 50 percent or more in the last hour, deepest liquidity first
-dexpaprika-cli pool-filter ethereum --price-change-percentage-1h-min 50 --sort-by liquidity_usd
+dexpaprika-cli pool-filter ethereum --price-change-1h-min 50 --sort-by liquidity_usd
 ```
 
-Two things to know before you trust the output. First, version: these flags and sort values ship in the CLI release after 0.4.4. On 0.4.4 and older the flags do not exist, and `--order-by price_change_percentage_1h` quietly falls back to `volume_usd_24h`, which returns a full result set ranked by volume rather than an error. Second, scope: the 6h, 1h and 5m windows are pool-only. `top-tokens` and `filter-tokens` hit `/networks/{network}/tokens/search`, which returns HTTP 400 for those three sort values and ignores the matching filters, so the CLI maps them back to `volume_usd_24h`. Token rows carry no 5m, 1h or 6h field to sort on. Only `price_change_percentage_24h` works on the token side.
+Two things to know before you trust the output.
+
+**Version.** On 0.4.4 and older, `pool-filter` has no price-change filter at all, not even 24h, and `--order-by price_change_percentage_1h` quietly falls back to `volume_usd_24h`. That returns a full result set ranked by volume rather than an error, which is the failure mode worth guarding against.
+
+**Scope.** Only the three short windows are pool-only. `top-tokens` and `filter-tokens` hit `/networks/{network}/tokens/search`, which returns HTTP 400 for `price_change_percentage_{6h,1h,5m}` and silently ignores the matching `_min` and `_max` filters, so the CLI maps those three sort values back to `volume_usd_24h`. The 24h window behaves differently: it sorts and filters on the token side. `top-tokens --order-by price_change_percentage_24h` works, and `price_change_percentage_24h_min` and `_max` do move the token result set on the API, though `filter-tokens` ships no flag for them yet, so reach for curl there. Token rows carry `price_change_percentage_24h` and nothing equivalent for the short windows. `detailed=true` adds `6h`, `1h` and `5m` objects to each token row, but those hold volume and trade counts, and neither sort nor filter.
 
 ---
 

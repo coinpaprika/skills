@@ -118,7 +118,7 @@ curl -s "https://api.dexpaprika.com/networks/ethereum/tokens/0xc02aaa39b223fe8d0
 
 **`token_address` is network-scoped only:** the cross-network `GET /pools/search` accepts `token_address` but silently ignores it (results are unfiltered); to find pools containing a token, use the per-network `GET /networks/{network}/pools/search`. An unknown address returns HTTP 200 with empty `results`. Repeating `token_address` does not act as a pair filter; the API uses only one of the values (not guaranteed by order).
 
-**Price-change windows are pool-only:** the two pool searches order by and filter on four windows, `price_change_percentage_24h`, `_6h`, `_1h` and `_5m`. Filter names are `price_change_percentage_{24h,6h,1h,5m}_{min,max}` and the values are signed, so `price_change_percentage_1h_max=-20` selects pools down 20 percent or more. The token searches accept none of the three short windows: `order_by=price_change_percentage_1h` returns HTTP 400 on `/tokens/search`, the matching filters are silently ignored there, and token rows carry no 5m, 1h or 6h field. A misspelled filter name is also ignored rather than rejected, so a typo looks exactly like a 200 with a full result set. Compare against an unfiltered baseline when you need to be sure a filter landed:
+**Short price-change windows are pool-only, the 24h window is not:** the two pool searches order by and filter on all four windows, `price_change_percentage_24h`, `_6h`, `_1h` and `_5m`. Filter names are `price_change_percentage_{24h,6h,1h,5m}_{min,max}` and the values are signed, so `price_change_percentage_1h_max=-20` selects pools down 20 percent or more. The token searches take the 24h window for both sorting and filtering, and reject the three short ones: `order_by=price_change_percentage_1h` returns HTTP 400 on `/tokens/search`, and `price_change_percentage_1h_min` and friends are accepted there and silently ignored. Token rows carry `price_change_percentage_24h` and no `price_change_percentage_6h`, `_1h` or `_5m`; `detailed=true` adds `6h`, `1h` and `5m` objects to each row, but those hold volume and trade counts, so there is no short-window token figure to sort or filter on. A misspelled filter name is ignored rather than rejected, so a typo looks exactly like a 200 with a full result set. Compare against an unfiltered baseline when you need to be sure a filter landed:
 
 ```bash
 # Baseline: 1h changes on the busiest ethereum pools sit near zero
@@ -126,6 +126,9 @@ curl -s "https://api.dexpaprika.com/networks/ethereum/pools/search?limit=5" | jq
 
 # Filtered: only pools up 50 percent or more over the last hour
 curl -s "https://api.dexpaprika.com/networks/ethereum/pools/search?price_change_percentage_1h_min=50&limit=5" | jq '[.results[].price_change_percentage_1h]'
+
+# The 24h window filters on the token side too: every row comes back at 20 percent or better
+curl -s "https://api.dexpaprika.com/networks/ethereum/tokens/search?price_change_percentage_24h_min=20&limit=5" | jq '[.results[].price_change_percentage_24h]'
 ```
 
 For the full OpenAPI 3.1 specification with all schemas, parameters, and response types, read `references/openapi.yml`.
