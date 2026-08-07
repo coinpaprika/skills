@@ -1,12 +1,12 @@
 ---
 name: dexpaprika-api
 description: Access the DexPaprika API, CLI, and streaming service to query DEX data including networks, pools, tokens, and trading activity. Use this skill when making HTTP requests to api.dexpaprika.com or streaming.dexpaprika.com, or when using dexpaprika-cli for blockchain DEX information.
-version: 2.3.0
+version: 2.4.0
 ---
 
 # DexPaprika API Skill
 
-> **Freshness check (run once per session, before relying on this skill):** this file is `version: 2.3.0`. Fetch the latest copy's header:
+> **Freshness check (run once per session, before relying on this skill):** this file is `version: 2.4.0`, verified against the live API on 2026-08-07. Fetch the latest copy's header:
 >
 > ```bash
 > curl -s -r 0-400 https://raw.githubusercontent.com/coinpaprika/skills/main/dexpaprika-api/SKILL.md
@@ -98,7 +98,8 @@ curl -s "https://api.dexpaprika.com/networks/ethereum/tokens/0xc02aaa39b223fe8d0
 | List all networks | `GET /networks` (returns volume_usd_24h, txns_24h, pools_count per network) |
 | DEXes on a network | `GET /networks/{network}/dexes` (returns volume_usd_24h, txns_24h, pools_count per DEX) |
 | Top pools on network | `GET /networks/{network}/pools/search` (order_by=volume_usd_24h; rows under `results`, cursor pagination) |
-| Filter pools | `GET /networks/{network}/pools/search` (volume_usd_24h/7d/30d, liquidity_usd, txns_24h, creation date filters) |
+| Filter pools | `GET /networks/{network}/pools/search` (volume_usd_24h/7d/30d, liquidity_usd, txns_24h, price_usd, price_change_percentage_24h/6h/1h/5m, creation date filters) |
+| Biggest movers on network | `GET /networks/{network}/pools/search?order_by=price_change_percentage_1h&sort=desc` (also 5m, 6h, 24h) |
 | Pool details | `GET /networks/{network}/pools/{pool_address}` |
 | Pool OHLCV (charts) | `GET /networks/{network}/pools/{pool_address}/ohlcv` |
 | Pool transactions | `GET /networks/{network}/pools/{pool_address}/transactions` |
@@ -116,6 +117,16 @@ curl -s "https://api.dexpaprika.com/networks/ethereum/tokens/0xc02aaa39b223fe8d0
 **Removed endpoints (HTTP 410):** `/networks/{network}/pools`, `/pools`, `/networks/{network}/pools/filter`, `/networks/{network}/tokens/filter`, `/networks/{network}/tokens/top`, and `/networks/{network}/tokens/{token_address}/pools` are gone. They return HTTP 410 with a pointer to the `/search` replacement. Do not call them.
 
 **`token_address` is network-scoped only:** the cross-network `GET /pools/search` accepts `token_address` but silently ignores it (results are unfiltered); to find pools containing a token, use the per-network `GET /networks/{network}/pools/search`. An unknown address returns HTTP 200 with empty `results`. Repeating `token_address` does not act as a pair filter; the API uses only one of the values (not guaranteed by order).
+
+**Price-change windows are pool-only:** the two pool searches order by and filter on four windows, `price_change_percentage_24h`, `_6h`, `_1h` and `_5m`. Filter names are `price_change_percentage_{24h,6h,1h,5m}_{min,max}` and the values are signed, so `price_change_percentage_1h_max=-20` selects pools down 20 percent or more. The token searches accept none of the three short windows: `order_by=price_change_percentage_1h` returns HTTP 400 on `/tokens/search`, the matching filters are silently ignored there, and token rows carry no 5m, 1h or 6h field. A misspelled filter name is also ignored rather than rejected, so a typo looks exactly like a 200 with a full result set. Compare against an unfiltered baseline when you need to be sure a filter landed:
+
+```bash
+# Baseline: 1h changes on the busiest ethereum pools sit near zero
+curl -s "https://api.dexpaprika.com/networks/ethereum/pools/search?limit=5" | jq '[.results[].price_change_percentage_1h]'
+
+# Filtered: only pools up 50 percent or more over the last hour
+curl -s "https://api.dexpaprika.com/networks/ethereum/pools/search?price_change_percentage_1h_min=50&limit=5" | jq '[.results[].price_change_percentage_1h]'
+```
 
 For the full OpenAPI 3.1 specification with all schemas, parameters, and response types, read `references/openapi.yml`.
 
@@ -301,7 +312,7 @@ Full list: `GET /networks` or `dexpaprika-cli networks`.
 Two pagination models coexist:
 
 - **Page-based** (`/networks/{network}/dexes`, `/networks/{network}/dexes/{dex}/pools`): `?page=1&limit=10&order_by=volume_usd&sort=desc`. Pages are 1-indexed (first page is `page=1`). Max 1000 pages. `order_by` values on these endpoints: `volume_usd`, `price_usd`, `transactions`, `last_price_change_usd_24h`, `created_at`.
-- **Cursor-based** (the four `/search` endpoints): pass `limit` plus the `cursor` value from the previous response. Rows arrive under `results`, alongside `has_next_page` and `next_cursor`. `order_by` values are canonical: `volume_usd_24h`, `volume_usd_7d`, `volume_usd_30d`, `liquidity_usd`, `txns_24h`, `created_at`, `price_change_percentage_24h`, plus `price_usd` (pools only) and `fdv_usd` (tokens only). The legacy names (`volume_usd`, `transactions`, `last_price_change_usd_24h`) return HTTP 400 on `/search` endpoints.
+- **Cursor-based** (the four `/search` endpoints): pass `limit` plus the `cursor` value from the previous response. Rows arrive under `results`, alongside `has_next_page` and `next_cursor`. `order_by` values are canonical: `volume_usd_24h`, `volume_usd_7d`, `volume_usd_30d`, `liquidity_usd`, `txns_24h`, `created_at`, `price_change_percentage_24h`, plus `price_usd`, `price_change_percentage_6h`, `price_change_percentage_1h` and `price_change_percentage_5m` (pools only) and `fdv_usd` (tokens only). The legacy names (`volume_usd`, `transactions`, `last_price_change_usd_24h`) return HTTP 400 on `/search` endpoints.
 
 ## Timestamps
 

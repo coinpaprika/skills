@@ -18,7 +18,7 @@ DEX data from the terminal. 36 chains, 230+ DEXes, 33M+ tokens, 36M+ pools. Free
 | `networks` | List all supported networks/chains | `dexpaprika-cli networks` |
 | `dexes` | List DEXes on a network | `dexpaprika-cli dexes ethereum` |
 | `pools` | List top pools on a network | `dexpaprika-cli pools ethereum --limit 10` |
-| `pool-filter` | Filter pools by volume, liquidity, txns, creation date | `dexpaprika-cli pool-filter ethereum --volume-24h-min 100000` |
+| `pool-filter` | Filter pools by volume, liquidity, txns, price change, creation date | `dexpaprika-cli pool-filter ethereum --volume-24h-min 100000` |
 | `pool` | Get detailed info about a specific pool | `dexpaprika-cli pool ethereum 0x88e6...` |
 | `dex-pools` | List pools on a specific DEX | `dexpaprika-cli dex-pools ethereum uniswap_v3` |
 | `transactions` | Get recent transactions for a pool | `dexpaprika-cli transactions ethereum 0x88e6...` |
@@ -62,6 +62,38 @@ dexpaprika-cli top-tokens solana --order-by price_change_percentage_24h --sort a
 dexpaprika-cli pool-filter ethereum --volume-24h-min 500000 --sort-by liquidity_usd --sort-dir desc
 dexpaprika-cli filter-tokens solana --fdv-min 1000000 --sort-by liquidity_usd
 ```
+
+## Price-change windows (pools only)
+
+`pools` and `pool-filter` sort and filter on four price-change windows: 24h, 6h, 1h and 5m. Three of the sort values are recent additions, and all three are canonical, so they pass through the mapping table above unchanged:
+
+- `price_change_percentage_6h`
+- `price_change_percentage_1h`
+- `price_change_percentage_5m`
+
+The matching filter flags follow the same kebab-case rule as `--txns-24h-min`, one flag per API parameter:
+
+| Flag | API parameter |
+|------|---------------|
+| `--price-change-percentage-24h-min`, `--price-change-percentage-24h-max` | `price_change_percentage_24h_min`, `_max` |
+| `--price-change-percentage-6h-min`, `--price-change-percentage-6h-max` | `price_change_percentage_6h_min`, `_max` |
+| `--price-change-percentage-1h-min`, `--price-change-percentage-1h-max` | `price_change_percentage_1h_min`, `_max` |
+| `--price-change-percentage-5m-min`, `--price-change-percentage-5m-max` | `price_change_percentage_5m_min`, `_max` |
+
+Values are signed percentages. Downside screens are the common case, so pass negatives with `=` to keep the argument parser from reading `-20` as another flag:
+
+```bash
+# Biggest 1h movers on ethereum
+dexpaprika-cli pools ethereum --order-by price_change_percentage_1h --sort desc --limit 10
+
+# Pools down 20 percent or more in the last hour
+dexpaprika-cli pool-filter ethereum --price-change-percentage-1h-max=-20 --limit 10
+
+# Pools up 50 percent or more in the last hour, deepest liquidity first
+dexpaprika-cli pool-filter ethereum --price-change-percentage-1h-min 50 --sort-by liquidity_usd
+```
+
+Two things to know before you trust the output. First, version: these flags and sort values ship in the CLI release after 0.4.4. On 0.4.4 and older the flags do not exist, and `--order-by price_change_percentage_1h` quietly falls back to `volume_usd_24h`, which returns a full result set ranked by volume rather than an error. Second, scope: the 6h, 1h and 5m windows are pool-only. `top-tokens` and `filter-tokens` hit `/networks/{network}/tokens/search`, which returns HTTP 400 for those three sort values and ignores the matching filters, so the CLI maps them back to `volume_usd_24h`. Token rows carry no 5m, 1h or 6h field to sort on. Only `price_change_percentage_24h` works on the token side.
 
 ---
 
