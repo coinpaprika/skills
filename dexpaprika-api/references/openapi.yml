@@ -276,6 +276,17 @@ paths:
       description: |
         Retrieves a paginated list of pools matching the advanced search criteria.
         Supports various filters and cursor-based pagination.
+        The `price_change_percentage_{24h,6h,1h,5m}_{min,max}` filters take signed
+        percentages, so `price_change_percentage_1h_max=-20` selects pools down 20
+        percent or more over the last hour. An unrecognised filter name is ignored
+        rather than rejected: HTTP 200 alone does not prove a filter applied, so
+        compare against an unfiltered baseline when you are unsure.
+        Only the 6h, 1h and 5m windows are pool-only. `/networks/{network}/tokens/search`
+        returns HTTP 400 if you order by them, and silently ignores the matching
+        filter parameters, but it does sort and filter on the 24h window. Token rows
+        carry `price_change_percentage_24h` and no `price_change_percentage_6h`, `_1h`
+        or `_5m`; with `detailed=true` they also carry `6h`, `1h` and `5m` objects of
+        volume and trade counts, which neither sort nor filter.
       parameters:
         - $ref: "#/components/parameters/networkParam"
         - $ref: "#/components/parameters/limitParam"
@@ -342,12 +353,42 @@ paths:
             type: number
         - name: price_change_percentage_24h_min
           in: query
-          description: Filter pools with a 24h price change percentage greater than or equal to this value.
+          description: Filter pools with a 24h price change percentage greater than or equal to this value. Negative values are valid.
           schema:
             type: number
         - name: price_change_percentage_24h_max
           in: query
-          description: Filter pools with a 24h price change percentage less than or equal to this value.
+          description: Filter pools with a 24h price change percentage less than or equal to this value. Negative values are valid.
+          schema:
+            type: number
+        - name: price_change_percentage_6h_min
+          in: query
+          description: Filter pools with a 6h price change percentage greater than or equal to this value. Negative values are valid.
+          schema:
+            type: number
+        - name: price_change_percentage_6h_max
+          in: query
+          description: Filter pools with a 6h price change percentage less than or equal to this value. Negative values are valid.
+          schema:
+            type: number
+        - name: price_change_percentage_1h_min
+          in: query
+          description: Filter pools with a 1h price change percentage greater than or equal to this value. Negative values are valid.
+          schema:
+            type: number
+        - name: price_change_percentage_1h_max
+          in: query
+          description: Filter pools with a 1h price change percentage less than or equal to this value. Negative values are valid.
+          schema:
+            type: number
+        - name: price_change_percentage_5m_min
+          in: query
+          description: Filter pools with a 5m price change percentage greater than or equal to this value. Negative values are valid.
+          schema:
+            type: number
+        - name: price_change_percentage_5m_max
+          in: query
+          description: Filter pools with a 5m price change percentage less than or equal to this value. Negative values are valid.
           schema:
             type: number
         - name: dex_name
@@ -371,6 +412,9 @@ paths:
           example: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
         - name: order_by
           in: query
+          description: >-
+            Sort field. An unknown value returns HTTP 400. The 6h, 1h and 5m
+            price-change windows are pool-only; `tokens/search` rejects them.
           schema:
             type: string
             enum:
@@ -383,6 +427,9 @@ paths:
                 created_at,
                 price_usd,
                 price_change_percentage_24h,
+                price_change_percentage_6h,
+                price_change_percentage_1h,
+                price_change_percentage_5m,
               ]
         - name: sort
           in: query
@@ -415,6 +462,12 @@ paths:
         Supports various filters and cursor-based pagination.
         The `token_address` filter is not supported here; it is accepted but silently ignored.
         To find pools containing a token, use the network-scoped `/networks/{network}/pools/search`.
+        The `price_change_percentage_{24h,6h,1h,5m}_{min,max}` filters take signed
+        percentages, so `price_change_percentage_1h_max=-20` selects pools down 20
+        percent or more over the last hour. An unrecognised filter name is ignored
+        rather than rejected, so HTTP 200 alone does not prove a filter applied.
+        Only the 6h, 1h and 5m windows are pool-only; `/tokens/search` rejects those
+        three and ignores their filters, while sorting and filtering fine on 24h.
       parameters:
         - name: chains
           in: query
@@ -485,12 +538,42 @@ paths:
             type: number
         - name: price_change_percentage_24h_min
           in: query
-          description: Filter pools with a 24h price change percentage greater than or equal to this value.
+          description: Filter pools with a 24h price change percentage greater than or equal to this value. Negative values are valid.
           schema:
             type: number
         - name: price_change_percentage_24h_max
           in: query
-          description: Filter pools with a 24h price change percentage less than or equal to this value.
+          description: Filter pools with a 24h price change percentage less than or equal to this value. Negative values are valid.
+          schema:
+            type: number
+        - name: price_change_percentage_6h_min
+          in: query
+          description: Filter pools with a 6h price change percentage greater than or equal to this value. Negative values are valid.
+          schema:
+            type: number
+        - name: price_change_percentage_6h_max
+          in: query
+          description: Filter pools with a 6h price change percentage less than or equal to this value. Negative values are valid.
+          schema:
+            type: number
+        - name: price_change_percentage_1h_min
+          in: query
+          description: Filter pools with a 1h price change percentage greater than or equal to this value. Negative values are valid.
+          schema:
+            type: number
+        - name: price_change_percentage_1h_max
+          in: query
+          description: Filter pools with a 1h price change percentage less than or equal to this value. Negative values are valid.
+          schema:
+            type: number
+        - name: price_change_percentage_5m_min
+          in: query
+          description: Filter pools with a 5m price change percentage greater than or equal to this value. Negative values are valid.
+          schema:
+            type: number
+        - name: price_change_percentage_5m_max
+          in: query
+          description: Filter pools with a 5m price change percentage less than or equal to this value. Negative values are valid.
           schema:
             type: number
         - name: dex_name
@@ -499,6 +582,9 @@ paths:
             type: string
         - name: order_by
           in: query
+          description: >-
+            Sort field. An unknown value returns HTTP 400. The 6h, 1h and 5m
+            price-change windows are pool-only; `tokens/search` rejects them.
           schema:
             type: string
             enum:
@@ -511,6 +597,9 @@ paths:
                 created_at,
                 price_usd,
                 price_change_percentage_24h,
+                price_change_percentage_6h,
+                price_change_percentage_1h,
+                price_change_percentage_5m,
               ]
         - name: sort
           in: query
@@ -539,6 +628,12 @@ paths:
       description: |
         Retrieves a paginated list of tokens on a specific network matching the advanced search criteria.
         Supports various filters and cursor-based pagination.
+        The 24h price-change window works here for both sorting and filtering:
+        `order_by=price_change_percentage_24h` is accepted, and
+        `price_change_percentage_24h_min` and `_max` take signed percentages.
+        The 6h, 1h and 5m windows do not: ordering by them returns HTTP 400, and
+        `price_change_percentage_{6h,1h,5m}_{min,max}` are accepted and ignored.
+        Those three exist on `/networks/{network}/pools/search` only.
       parameters:
         - $ref: "#/components/parameters/networkParam"
         - $ref: "#/components/parameters/limitParam"
@@ -664,6 +759,10 @@ paths:
       description: |
         Retrieves a paginated list of tokens matching the advanced search criteria across multiple chains.
         Supports various filters and cursor-based pagination.
+        The 24h price-change window works here for both sorting and filtering.
+        The 6h, 1h and 5m windows do not: ordering by them returns HTTP 400, and
+        `price_change_percentage_{6h,1h,5m}_{min,max}` are accepted and ignored.
+        Those three exist on the pool searches only.
       parameters:
         - name: chains
           in: query
@@ -2186,6 +2285,18 @@ components:
           type: number
         price_change_percentage_24h_max:
           type: number
+        price_change_percentage_6h_min:
+          type: number
+        price_change_percentage_6h_max:
+          type: number
+        price_change_percentage_1h_min:
+          type: number
+        price_change_percentage_1h_max:
+          type: number
+        price_change_percentage_5m_min:
+          type: number
+        price_change_percentage_5m_max:
+          type: number
         dex_name:
           type: string
         order_by:
@@ -2200,6 +2311,9 @@ components:
               created_at,
               price_usd,
               price_change_percentage_24h,
+              price_change_percentage_6h,
+              price_change_percentage_1h,
+              price_change_percentage_5m,
             ]
         sort:
           type: string
@@ -2250,6 +2364,18 @@ components:
           type: number
         price_change_percentage_24h_max:
           type: number
+        price_change_percentage_6h_min:
+          type: number
+        price_change_percentage_6h_max:
+          type: number
+        price_change_percentage_1h_min:
+          type: number
+        price_change_percentage_1h_max:
+          type: number
+        price_change_percentage_5m_min:
+          type: number
+        price_change_percentage_5m_max:
+          type: number
         dex_name:
           type: string
         order_by:
@@ -2264,6 +2390,9 @@ components:
               created_at,
               price_usd,
               price_change_percentage_24h,
+              price_change_percentage_6h,
+              price_change_percentage_1h,
+              price_change_percentage_5m,
             ]
         sort:
           type: string
@@ -2302,6 +2431,8 @@ components:
         price_change_percentage_5m:
           type: [number, "null"]
         price_change_percentage_1h:
+          type: [number, "null"]
+        price_change_percentage_6h:
           type: [number, "null"]
         price_change_percentage_24h:
           type: [number, "null"]
