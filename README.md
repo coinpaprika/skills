@@ -60,7 +60,7 @@ Each `SKILL.md` carries a `version:` field in its frontmatter and a freshness ch
 ## Free tiers, no key to start
 
 Both APIs have a free tier that works without authentication:
-- **DexPaprika:** 200,000 credits/month keyless per IP, 500,000 with a free key, at 30 requests/minute. Data is delayed up to 15 seconds on the free tier. Pro is $99/month for 5,000,000 credits at 300/minute with real-time data. One request costs one credit.
+- **DexPaprika:** keyless at 30 requests/minute, and a free key raises the monthly quota. Data is delayed up to 15 seconds on the free tier. Pro is $99/month at 300/minute with real-time data. One request costs one credit. Current quotas: https://dexpaprika.com/api/pricing
 - **CoinPaprika:** 20,000 calls/month keyless. Paid plans start at $99/month for 400,000 calls.
 
 ## Other integration options
