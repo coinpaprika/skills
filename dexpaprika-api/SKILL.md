@@ -14,7 +14,7 @@ version: 2.6.0
 >
 > If the remote `version:` differs from this file's, this copy is outdated: fetch the full remote file, follow it instead of this one, and replace your local copy with it. DexPaprika removes endpoints (they return HTTP 410) and reshapes responses; a stale skill points you at dead endpoints.
 
-DEX data API covering 36 blockchains, 230+ DEXes, 36M+ liquidity pools, and 33M+ tokens, over 96% of on-chain DEX volume. Built by the CoinPaprika team (operating since 2018). No API key and no registration to start: the free tier is 200,000 credits/month keyless per IP, or 500,000 with a free key, at 30 requests/minute, with data delayed up to 15 seconds. Pro is $99/month for 5,000,000 credits at 300/minute with real-time data, on api-pro.dexpaprika.com with an API key. See https://docs.dexpaprika.com/knowledge-base/rate-limits.
+DEX data API covering 36 blockchains, 230+ DEXes, 36M+ liquidity pools, and 33M+ tokens, over 96% of on-chain DEX volume. Built by the CoinPaprika team (operating since 2018). No API key and no registration to start: keyless runs at 15 requests/minute per IP, and a free key raises that to 30 requests/minute and raises the monthly credit allowance. Data is delayed up to 15 seconds on both. Pro is $99/month for 5,000,000 credits at 300/minute with real-time data, on api-pro.dexpaprika.com with an API key. See https://docs.dexpaprika.com/knowledge-base/rate-limits.
 
 - Documentation: https://docs.dexpaprika.com
 - AI Agents showcase: https://agents.dexpaprika.com
@@ -325,7 +325,7 @@ All timestamps support Unix, RFC3339, or `yyyy-mm-dd` format. OHLCV data limited
 
 ## Rate limits and errors
 
-- Quotas: 200,000 credits/month keyless per IP, 500,000 with a free key, at 30/minute, with data delayed up to 15 seconds. Pro is $99/month for 5,000,000 credits at 300/minute with real-time data, on api-pro.dexpaprika.com with an API key. One request = one credit; a batch endpoint costs one credit per item, and each delivered streaming update costs one credit. Current numbers: https://docs.dexpaprika.com/knowledge-base/rate-limits
+- Rate limits: 15 requests/minute keyless per IP, 30/minute with a free key, 300/minute on Pro. Data is delayed up to 15 seconds on the free tier. Pro is $99/month for 5,000,000 credits at 300/minute with real-time data, on api-pro.dexpaprika.com with an API key. One request = one credit; a batch endpoint costs one credit per item, and each delivered streaming update costs one credit. Current numbers: https://docs.dexpaprika.com/knowledge-base/rate-limits
 - HTTP errors: `200` OK | `400` bad params | `404` not found | `429` rate limited | `500` server error
 - **On 429 rate limit:** Wait a few seconds/minutes, then retry. Blocks are temporary. If persistent, contact support@coinpaprika.com.
 - Check API health: `dexpaprika-cli status` or `GET https://api.dexpaprika.com/stats`
