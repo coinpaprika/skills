@@ -49,7 +49,7 @@ Each `SKILL.md` carries a `version:` field in its frontmatter and a freshness ch
 - CLI: `coinpaprika-cli ticker btc-bitcoin`
 
 **DexPaprika:**
-- Get on-chain token prices across 36 blockchains
+- Get on-chain token prices across 35 blockchains
 - Query liquidity pools, DEXes, and trading activity
 - Historical OHLCV for any pool
 - Batch price queries (up to 10 tokens)
@@ -60,7 +60,7 @@ Each `SKILL.md` carries a `version:` field in its frontmatter and a freshness ch
 ## Free tiers, no key to start
 
 Both APIs have a free tier that works without authentication:
-- **DexPaprika:** keyless at 15 requests/minute, and a free key (https://console.dexpaprika.com) raises that to 30 and raises the monthly quota. Data is delayed up to 15 seconds on the free tier. Pro is $99/month at 300/minute with real-time data. One request costs one credit. Docs: https://docs.dexpaprika.com. Current quotas and plans: https://dexpaprika.com/api/pricing
+- **DexPaprika:** keyless at 15 requests/minute, and a free key (https://console.dexpaprika.com) raises that to 50 and raises the monthly quota. Data is delayed up to 60 seconds on the free tier. Pro is $99/month at 300/minute with real-time data. One request costs one credit. Docs: https://docs.dexpaprika.com. Current quotas and plans: https://dexpaprika.com/api/pricing
 - **CoinPaprika:** 20,000 calls/month keyless. Paid plans start at $99/month for 400,000 calls.
 
 ## Other integration options
