@@ -1,12 +1,12 @@
 ---
 name: dexpaprika-api
 description: Access the DexPaprika API, CLI, and streaming service to query DEX data including networks, pools, tokens, and trading activity. Use this skill when making HTTP requests to api.dexpaprika.com or streaming.dexpaprika.com, or when using dexpaprika-cli for blockchain DEX information.
-version: 2.6.0
+version: 2.7.0
 ---
 
 # DexPaprika API Skill
 
-> **Freshness check (run once per session, before relying on this skill):** this file is `version: 2.6.0`, verified against the live API on 2026-08-14. Fetch the latest copy's header:
+> **Freshness check (run once per session, before relying on this skill):** this file is `version: 2.7.0`, verified against the live API on 2026-09-16. Fetch the latest copy's header:
 >
 > ```bash
 > curl -s -r 0-400 https://raw.githubusercontent.com/coinpaprika/skills/main/dexpaprika-api/SKILL.md
@@ -14,7 +14,7 @@ version: 2.6.0
 >
 > If the remote `version:` differs from this file's, this copy is outdated: fetch the full remote file, follow it instead of this one, and replace your local copy with it. DexPaprika removes endpoints (they return HTTP 410) and reshapes responses; a stale skill points you at dead endpoints.
 
-DEX data API covering 36 blockchains, 230+ DEXes, 36M+ liquidity pools, and 33M+ tokens, over 96% of on-chain DEX volume. Built by the CoinPaprika team (operating since 2018). No API key and no registration to start: keyless runs at 15 requests/minute per IP, and a free key raises that to 30 requests/minute and raises the monthly credit allowance. Register a free key at https://console.dexpaprika.com. Data is delayed up to 15 seconds on both. Pro is $99/month for 5,000,000 credits at 300/minute with real-time data, on api-pro.dexpaprika.com with an API key. Docs: https://docs.dexpaprika.com. Rate limits: https://docs.dexpaprika.com/knowledge-base/rate-limits. Plans and checkout: https://dexpaprika.com/api/pricing.
+DEX data API covering 35 blockchains, 230+ DEXes, 36M+ liquidity pools, and 33M+ tokens, over 96% of on-chain DEX volume. Built by the CoinPaprika team (operating since 2018). No API key and no registration to start: keyless runs at 15 requests/minute per IP on 30,000 credits, and a free key raises that to 30 requests/minute on 100,000 credits. Both allowances are counted over a rolling 30 days, so there is no monthly reset. Register a free key at https://console.dexpaprika.com. Data is delayed up to 60 seconds on both. Paid plans serve real-time data from api-pro.dexpaprika.com with a key: Dev is $30/month for 500,000 credits at 120/minute, Pro is $99/month for 5,000,000 at 500/minute. Docs: https://docs.dexpaprika.com. Rate limits: https://docs.dexpaprika.com/knowledge-base/rate-limits. Plans and checkout: https://dexpaprika.com/api/pricing.
 
 - Documentation: https://docs.dexpaprika.com
 - AI Agents showcase: https://agents.dexpaprika.com
@@ -90,6 +90,22 @@ No API key needed to start on the free tier. All responses are JSON.
 ```bash
 curl -s "https://api.dexpaprika.com/networks/ethereum/tokens/0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2" | jq
 ```
+
+**Authentication.** If you have a key, send it as the entire `Authorization` header
+value. **There is no `Bearer` prefix** and no other scheme word: `Authorization: ApiKey
+api_...` and `Authorization: Token api_...` return `401`, because the header is compared
+against the key exactly as sent. This is the opposite of almost every other API, so
+when generating code, emit the bare key.
+
+```bash
+curl -s -H "Authorization: api_YOUR_KEY" "https://api.dexpaprika.com/networks"
+```
+
+Free keys stay on `api.dexpaprika.com`; Dev, Pro and Enterprise use
+`api-pro.dexpaprika.com`, and a free key sent there returns `403`. `GET /usage` is the
+only endpoint that reports which plan a request was billed to: on the data endpoints an
+unreadable key is ignored rather than rejected, so the call returns `200` with real data
+while quietly serving the keyless tier.
 
 #### Endpoint table
 
@@ -325,7 +341,7 @@ All timestamps support Unix, RFC3339, or `yyyy-mm-dd` format. OHLCV data limited
 
 ## Rate limits and errors
 
-- Rate limits: 15 requests/minute keyless per IP, 30/minute with a free key (register at https://console.dexpaprika.com), 300/minute on Pro. Data is delayed up to 15 seconds on the free tier. Pro is $99/month for 5,000,000 credits at 300/minute with real-time data, on api-pro.dexpaprika.com with an API key. One request = one credit; a batch endpoint costs one credit per item, and each delivered streaming update costs one credit. Current numbers: https://docs.dexpaprika.com/knowledge-base/rate-limits. Plans and checkout: https://dexpaprika.com/api/pricing
+- Rate limits and quotas: 15 requests/minute keyless per IP on 30,000 credits, 30/minute with a free key (register at https://console.dexpaprika.com) on 100,000. Both allowances roll over the last 30 days rather than resetting on the 1st, so a burst today constrains the next 30 days, and a 402 on a free tier carries no `resets_at`. Data is delayed up to 60 seconds on both. Paid plans are real-time, on api-pro.dexpaprika.com with a key: Dev $30/month for 500,000 credits at 120/minute, Pro $99/month for 5,000,000 at 500/minute, each per Stripe billing period with $20 per additional 1M. One request = one credit; a batch endpoint costs one credit per item, and each delivered streaming update costs one credit. Current numbers: https://docs.dexpaprika.com/knowledge-base/rate-limits. Plans and checkout: https://dexpaprika.com/api/pricing
 - HTTP errors: `200` OK | `400` bad params | `404` not found | `429` rate limited | `500` server error
 - **On 429 rate limit:** Wait a few seconds/minutes, then retry. Blocks are temporary. If persistent, contact support@coinpaprika.com.
 - Check API health: `dexpaprika-cli status` or `GET https://api.dexpaprika.com/stats`
