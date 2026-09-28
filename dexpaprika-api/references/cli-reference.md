@@ -18,14 +18,14 @@ DEX data from the terminal. 35 chains, 230+ DEXes, 33M+ tokens, 36M+ pools. Free
 | `networks` | List all supported networks/chains | `dexpaprika-cli networks` |
 | `dexes` | List DEXes on a network | `dexpaprika-cli dexes ethereum` |
 | `pools` | List top pools on a network | `dexpaprika-cli pools ethereum --limit 10` |
-| `pool-filter` | Filter pools by volume, liquidity, txns, price change (0.4.4+), creation date | `dexpaprika-cli pool-filter ethereum --volume-24h-min 100000` |
+| `pool-filter` | Filter pools by volume, liquidity, txns, price change (0.4.4+), creation date (`--created-after -24h` from 0.8.0) | `dexpaprika-cli pool-filter ethereum --volume-24h-min 100000` |
 | `pool` | Get detailed info about a specific pool | `dexpaprika-cli pool ethereum 0x88e6...` |
 | `dex-pools` | List pools on a specific DEX. Broken as of CLI 0.4.2: the endpoint behind it was removed and the command returns HTTP 410. Until a newer CLI ships, call the search endpoint directly | `dexpaprika-cli dex-pools ethereum uniswap_v3` fails on 0.4.2; meanwhile `curl "https://api.dexpaprika.com/networks/ethereum/pools/search?dex_name=uniswap_v3"` |
-| `transactions` | Get recent transactions for a pool | `dexpaprika-cli transactions ethereum 0x88e6...` |
+| `transactions` | Get recent transactions for a pool; `--from`/`--to` take `-1h` from 0.8.0 | `dexpaprika-cli transactions ethereum 0x88e6... --from -1h` |
 | `pool-ohlcv` | Get OHLCV data for a pool | `dexpaprika-cli pool-ohlcv ethereum 0x88e6... --start -24h --interval 1h` |
 | `token` | Get detailed info about a token | `dexpaprika-cli token ethereum 0xc02a...` |
 | `token-pools` | Get pools containing a token | `dexpaprika-cli token-pools ethereum 0xc02a...` |
-| `filter-tokens` | Filter tokens by volume, liquidity, FDV, txns, 24h price change (0.4.4+), creation date | `dexpaprika-cli filter-tokens ethereum --volume-24h-min 100000` |
+| `filter-tokens` | Filter tokens by volume, liquidity, FDV, txns, 24h price change (0.4.4+), creation date (`--created-after -24h` from 0.8.0) | `dexpaprika-cli filter-tokens ethereum --volume-24h-min 100000` |
 | `top-tokens` | Discover top tokens by volume (derived from pools) | `dexpaprika-cli top-tokens ethereum` |
 | `prices` | Get batch prices for multiple tokens | `dexpaprika-cli prices ethereum --tokens 0xc02a...,0xa0b8...` |
 | `search` | Search tokens, pools, DEXes across all networks | `dexpaprika-cli search USDC` |
