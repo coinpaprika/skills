@@ -2,23 +2,34 @@ openapi: 3.1.0
 security: []
 info:
   title: DexPaprika API
-  version: 1.0.3
+  version: 1.0.4
   description: >
     # Introduction
       Welcome to the DexPaprika API! This product is developed by [CoinPaprika](https://coinpaprika.com).
 
       Our API enables developers to query token, pool, and DEX data across multiple blockchain networks. Feel free to explore our endpoints below.
 
-      **Important:** This API is currently in beta and **should not be used in critical solutions or features**, as the service is under active development. We reserve the right to introduce changes or break backward compatibility.
+      ---
+    # Rate limits and credit quota
+      Two different limits apply, signalled by distinct status codes:
+
+      - **429 Too Many Requests**, you are sending requests too fast (per-minute limit). Slow down and retry after the number of seconds given in the `Retry-After` header.
+
+      - **402 Payment Required**, your credit allowance is exhausted. Retrying will not help. Register a free key (keyless), upgrade your plan (free key), or enable overage in the console (Dev and Pro).
+
+      Both codes carry a structured JSON body (`error`, `tier`, `message`, `credits`, and per-scenario fields; see the 402/429 response schemas below). A Dev or Pro 402 includes `resets_at`, the UTC end of the billing period; keyless and free keys count over a rolling 30-day window and carry no `resets_at`. A 402 deliberately carries no `Retry-After` header.
+
+      Responses include an `X-Api-Plan` header naming the plan the request was evaluated against, `x-credits-limit`, `x-credits-remaining` and `x-credits-reset` for the credit allowance, and the `ratelimit-limit`, `ratelimit-remaining` and `ratelimit-reset` trio.
+
+      Call `GET /usage` to check your plan and, when authenticated with an API key on `api-pro.dexpaprika.com`, your current-period credit usage and remaining allowance.
 
       ---
-    # Getting Started
+    # Getting started
 
-    ## Testing the API - Code Snippets
+    ## Testing the API with code snippets
 
-    The snippets below show how to quickly make a **GET** request. Since this is
-    a **public beta** (no API key needed), you can simply call the endpoints
-    directly.
+    The snippets below show how to quickly make a **GET** request. No API key is
+    needed to start, so you can call the endpoints directly.
 
 
     > **Note**: If you see CORS issues in a browser, you may need to call these
@@ -30,7 +41,7 @@ info:
 
     ```bash
 
-    curl -X GET "https://api.dexpaprika.com/networks/ethereum/pools/search" | jq
+    curl -X GET "https://api.dexpaprika.com/networks/ethereum/pools/search?limit=10" | jq
 
     ```
 
@@ -43,7 +54,7 @@ info:
 
     const options = {
       hostname: 'api.dexpaprika.com',
-      path: '/networks/ethereum/pools',
+      path: '/networks/ethereum/pools/search?limit=10',
       method: 'GET',
     };
 
@@ -69,7 +80,7 @@ info:
     import requests
 
 
-    url = "https://api.dexpaprika.com/networks/ethereum/pools/search"
+    url = "https://api.dexpaprika.com/networks/ethereum/pools/search?limit=10"
 
 
     response = requests.get(url)
@@ -90,7 +101,7 @@ info:
 
 
     curl_setopt_array($curl, array(
-      CURLOPT_URL => "https://api.dexpaprika.com/networks/ethereum/pools/search",
+      CURLOPT_URL => "https://api.dexpaprika.com/networks/ethereum/pools/search?limit=10",
       CURLOPT_RETURNTRANSFER => true
     ));
 
@@ -126,7 +137,7 @@ info:
     public class DexPaprikaExample {
         public static void main(String[] args) {
             try {
-                URL url = new URL("https://api.dexpaprika.com/networks/ethereum/pools/search");
+                URL url = new URL("https://api.dexpaprika.com/networks/ethereum/pools/search?limit=10");
                 HttpURLConnection con = (HttpURLConnection) url.openConnection();
                 con.setRequestMethod("GET");
                 int responseCode = con.getResponseCode();
@@ -168,7 +179,7 @@ info:
 
     func main() {
         client := &http.Client{}
-        req, err := http.NewRequest("GET", "https://api.dexpaprika.com/networks/ethereum/pools/search", nil)
+        req, err := http.NewRequest("GET", "https://api.dexpaprika.com/networks/ethereum/pools/search?limit=10", nil)
         if err != nil {
             log.Fatal(err)
         }
@@ -211,7 +222,7 @@ info:
         static async Task Main()
         {
             using var client = new HttpClient();
-            var url = "https://api.dexpaprika.com/networks/ethereum/pools/search";
+            var url = "https://api.dexpaprika.com/networks/ethereum/pools/search?limit=10";
             
             var response = await client.GetAsync(url);
             
@@ -230,7 +241,7 @@ info:
     ```
 
 
-    ## Feedback & Next Steps
+    ## Feedback and next steps
 
     1. **Test** any of the snippets above.  
 
@@ -276,17 +287,6 @@ paths:
       description: |
         Retrieves a paginated list of pools matching the advanced search criteria.
         Supports various filters and cursor-based pagination.
-        The `price_change_percentage_{24h,6h,1h,5m}_{min,max}` filters take signed
-        percentages, so `price_change_percentage_1h_max=-20` selects pools down 20
-        percent or more over the last hour. An unrecognised filter name is ignored
-        rather than rejected: HTTP 200 alone does not prove a filter applied, so
-        compare against an unfiltered baseline when you are unsure.
-        Only the 6h, 1h and 5m windows are pool-only. `/networks/{network}/tokens/search`
-        returns HTTP 400 if you order by them, and silently ignores the matching
-        filter parameters, but it does sort and filter on the 24h window. Token rows
-        carry `price_change_percentage_24h` and no `price_change_percentage_6h`, `_1h`
-        or `_5m`; with `detailed=true` they also carry `6h`, `1h` and `5m` objects of
-        volume and trade counts, which neither sort nor filter.
       parameters:
         - $ref: "#/components/parameters/networkParam"
         - $ref: "#/components/parameters/limitParam"
@@ -351,81 +351,58 @@ paths:
           in: query
           schema:
             type: number
-        - name: price_change_percentage_24h_min
-          in: query
-          description: Filter pools with a 24h price change percentage greater than or equal to this value. Negative values are valid.
-          schema:
-            type: number
-        - name: price_change_percentage_24h_max
-          in: query
-          description: Filter pools with a 24h price change percentage less than or equal to this value. Negative values are valid.
-          schema:
-            type: number
         - name: price_change_percentage_6h_min
           in: query
-          description: Filter pools with a 6h price change percentage greater than or equal to this value. Negative values are valid.
+          description: Filter pools with a 6h price change percentage greater than or equal to this value.
           schema:
             type: number
         - name: price_change_percentage_6h_max
           in: query
-          description: Filter pools with a 6h price change percentage less than or equal to this value. Negative values are valid.
+          description: Filter pools with a 6h price change percentage less than or equal to this value.
           schema:
             type: number
         - name: price_change_percentage_1h_min
           in: query
-          description: Filter pools with a 1h price change percentage greater than or equal to this value. Negative values are valid.
+          description: Filter pools with a 1h price change percentage greater than or equal to this value.
           schema:
             type: number
         - name: price_change_percentage_1h_max
           in: query
-          description: Filter pools with a 1h price change percentage less than or equal to this value. Negative values are valid.
+          description: Filter pools with a 1h price change percentage less than or equal to this value.
           schema:
             type: number
         - name: price_change_percentage_5m_min
           in: query
-          description: Filter pools with a 5m price change percentage greater than or equal to this value. Negative values are valid.
+          description: Filter pools with a 5m price change percentage greater than or equal to this value.
           schema:
             type: number
         - name: price_change_percentage_5m_max
           in: query
-          description: Filter pools with a 5m price change percentage less than or equal to this value. Negative values are valid.
+          description: Filter pools with a 5m price change percentage less than or equal to this value.
+          schema:
+            type: number
+        - name: price_change_percentage_24h_min
+          in: query
+          description: Filter pools with a 24h price change percentage greater than or equal to this value.
+          schema:
+            type: number
+        - name: price_change_percentage_24h_max
+          in: query
+          description: Filter pools with a 24h price change percentage less than or equal to this value.
           schema:
             type: number
         - name: dex_name
           in: query
-          required: false
           schema:
             type: string
-          description: >-
-            Restrict results to pools on this DEX. Takes the dex id
-            (`uniswap_v3`), matched case-insensitively, not the human display
-            name. Valid values come from `GET /networks/{network}/dexes`: pass
-            the `dex_id` field of that response. Passing its `dex_name` field
-            instead, a display name like `Uniswap V3`, returns HTTP 200 with an
-            empty `results` array rather than an error, so a wrong value looks
-            like a DEX with no pools. Replaces the removed
-            `/networks/{network}/dexes/{dex}/pools` endpoint, which carried the
-            DEX as a path segment.
         - name: token_address
           in: query
-          required: false
+          description: |
+            Restrict results to pools that contain this token address on the given network.
           schema:
             type: string
-          description: >-
-            Restrict results to pools that contain this token on the given
-            network. Replaces the removed
-            `/networks/{network}/tokens/{token_address}/pools` endpoint. An
-            unknown address returns HTTP 200 with an empty result set, not an
-            error. Repeating the parameter does not act as a pair filter; the
-            API uses only one of the values (not guaranteed by order). This
-            filter is network-scoped only; the cross-network `/pools/search`
-            accepts it but ignores it.
-          example: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
         - name: order_by
           in: query
-          description: >-
-            Sort field. An unknown value returns HTTP 400. The 6h, 1h and 5m
-            price-change windows are pool-only; `tokens/search` rejects them.
           schema:
             type: string
             enum:
@@ -462,6 +439,10 @@ paths:
                 $ref: "#/components/schemas/PoolSearchResponse"
         "404":
           description: Network not found.
+        "402":
+          $ref: "#/components/responses/QuotaExceeded"
+        "429":
+          $ref: "#/components/responses/RateLimited"
   /pools/search:
     get:
       operationId: searchPools
@@ -471,14 +452,6 @@ paths:
       description: |
         Retrieves a paginated list of pools matching the advanced search criteria across multiple chains.
         Supports various filters and cursor-based pagination.
-        The `token_address` filter is not supported here; it is accepted but silently ignored.
-        To find pools containing a token, use the network-scoped `/networks/{network}/pools/search`.
-        The `price_change_percentage_{24h,6h,1h,5m}_{min,max}` filters take signed
-        percentages, so `price_change_percentage_1h_max=-20` selects pools down 20
-        percent or more over the last hour. An unrecognised filter name is ignored
-        rather than rejected, so HTTP 200 alone does not prove a filter applied.
-        Only the 6h, 1h and 5m windows are pool-only; `/tokens/search` rejects those
-        three and ignores their filters, while sorting and filtering fine on 24h.
       parameters:
         - name: chains
           in: query
@@ -547,66 +520,52 @@ paths:
           in: query
           schema:
             type: number
-        - name: price_change_percentage_24h_min
-          in: query
-          description: Filter pools with a 24h price change percentage greater than or equal to this value. Negative values are valid.
-          schema:
-            type: number
-        - name: price_change_percentage_24h_max
-          in: query
-          description: Filter pools with a 24h price change percentage less than or equal to this value. Negative values are valid.
-          schema:
-            type: number
         - name: price_change_percentage_6h_min
           in: query
-          description: Filter pools with a 6h price change percentage greater than or equal to this value. Negative values are valid.
+          description: Filter pools with a 6h price change percentage greater than or equal to this value.
           schema:
             type: number
         - name: price_change_percentage_6h_max
           in: query
-          description: Filter pools with a 6h price change percentage less than or equal to this value. Negative values are valid.
+          description: Filter pools with a 6h price change percentage less than or equal to this value.
           schema:
             type: number
         - name: price_change_percentage_1h_min
           in: query
-          description: Filter pools with a 1h price change percentage greater than or equal to this value. Negative values are valid.
+          description: Filter pools with a 1h price change percentage greater than or equal to this value.
           schema:
             type: number
         - name: price_change_percentage_1h_max
           in: query
-          description: Filter pools with a 1h price change percentage less than or equal to this value. Negative values are valid.
+          description: Filter pools with a 1h price change percentage less than or equal to this value.
           schema:
             type: number
         - name: price_change_percentage_5m_min
           in: query
-          description: Filter pools with a 5m price change percentage greater than or equal to this value. Negative values are valid.
+          description: Filter pools with a 5m price change percentage greater than or equal to this value.
           schema:
             type: number
         - name: price_change_percentage_5m_max
           in: query
-          description: Filter pools with a 5m price change percentage less than or equal to this value. Negative values are valid.
+          description: Filter pools with a 5m price change percentage less than or equal to this value.
+          schema:
+            type: number
+        - name: price_change_percentage_24h_min
+          in: query
+          description: Filter pools with a 24h price change percentage greater than or equal to this value.
+          schema:
+            type: number
+        - name: price_change_percentage_24h_max
+          in: query
+          description: Filter pools with a 24h price change percentage less than or equal to this value.
           schema:
             type: number
         - name: dex_name
           in: query
-          required: false
           schema:
             type: string
-          description: >-
-            Restrict results to pools on this DEX. Takes the dex id
-            (`uniswap_v3`), matched case-insensitively, not the human display
-            name. Valid values come from `GET /networks/{network}/dexes`: pass
-            the `dex_id` field of that response. Passing its `dex_name` field
-            instead, a display name like `Uniswap V3`, returns HTTP 200 with an
-            empty `results` array rather than an error, so a wrong value looks
-            like a DEX with no pools. Replaces the removed
-            `/networks/{network}/dexes/{dex}/pools` endpoint, which carried the
-            DEX as a path segment.
         - name: order_by
           in: query
-          description: >-
-            Sort field. An unknown value returns HTTP 400. The 6h, 1h and 5m
-            price-change windows are pool-only; `tokens/search` rejects them.
           schema:
             type: string
             enum:
@@ -641,6 +600,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/NetworksPoolSearchResponse"
+        "402":
+          $ref: "#/components/responses/QuotaExceeded"
+        "429":
+          $ref: "#/components/responses/RateLimited"
   /networks/{network}/tokens/search:
     get:
       operationId: searchNetworkTokens
@@ -650,12 +613,6 @@ paths:
       description: |
         Retrieves a paginated list of tokens on a specific network matching the advanced search criteria.
         Supports various filters and cursor-based pagination.
-        The 24h price-change window works here for both sorting and filtering:
-        `order_by=price_change_percentage_24h` is accepted, and
-        `price_change_percentage_24h_min` and `_max` take signed percentages.
-        The 6h, 1h and 5m windows do not: ordering by them returns HTTP 400, and
-        `price_change_percentage_{6h,1h,5m}_{min,max}` are accepted and ignored.
-        Those three exist on `/networks/{network}/pools/search` only.
       parameters:
         - $ref: "#/components/parameters/networkParam"
         - $ref: "#/components/parameters/limitParam"
@@ -746,7 +703,6 @@ paths:
                 volume_usd_24h,
                 volume_usd_7d,
                 volume_usd_30d,
-                price_usd,
                 liquidity_usd,
                 txns_24h,
                 price_change_percentage_24h,
@@ -772,6 +728,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/TokenSearchResponse"
+        "402":
+          $ref: "#/components/responses/QuotaExceeded"
+        "429":
+          $ref: "#/components/responses/RateLimited"
   /tokens/search:
     get:
       operationId: searchTokens
@@ -781,10 +741,6 @@ paths:
       description: |
         Retrieves a paginated list of tokens matching the advanced search criteria across multiple chains.
         Supports various filters and cursor-based pagination.
-        The 24h price-change window works here for both sorting and filtering.
-        The 6h, 1h and 5m windows do not: ordering by them returns HTTP 400, and
-        `price_change_percentage_{6h,1h,5m}_{min,max}` are accepted and ignored.
-        Those three exist on the pool searches only.
       parameters:
         - name: chains
           in: query
@@ -879,7 +835,6 @@ paths:
                 volume_usd_24h,
                 volume_usd_7d,
                 volume_usd_30d,
-                price_usd,
                 liquidity_usd,
                 txns_24h,
                 price_change_percentage_24h,
@@ -905,6 +860,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/TokenSearchResponse"
+        "402":
+          $ref: "#/components/responses/QuotaExceeded"
+        "429":
+          $ref: "#/components/responses/RateLimited"
   /networks:
     get:
       operationId: getNetworks
@@ -952,6 +911,10 @@ paths:
                   error:
                     type: string
                     example: Unexpected server error. Please try again later.
+        "402":
+          $ref: "#/components/responses/QuotaExceeded"
+        "429":
+          $ref: "#/components/responses/RateLimited"
   "/networks/{network}/dexes":
     get:
       operationId: getNetworkDexes
@@ -997,29 +960,10 @@ paths:
                   error:
                     type: string
                     example: Network not found.
-  "/networks/{network}/dexes/{dex}/pools":
-    get:
-      operationId: getDexPools
-      tags:
-        - Pools
-      summary: Get top X pools on a network's DEX.
-      deprecated: true
-      description: Removed. Use `/networks/{network}/pools/search` with the
-        `dex_name` query parameter instead. `dex_name` takes the dex id
-        (`uniswap_v3`) from `GET /networks/{network}/dexes`, matched
-        case-insensitively; a display name like `Uniswap V3` returns HTTP 200
-        with an empty `results` array rather than an error. Rows arrive under
-        `results` instead of `pools`, pagination is `cursor` plus `has_next_page`
-        and `next_cursor` instead of `page` and `page_info`, and the 24h volume
-        field is `volume_usd_24h`. There is no bare `volume_usd` on the
-        replacement.
-      parameters:
-        - $ref: "#/components/parameters/networkParam"
-        - $ref: "#/components/parameters/dexParam"
-      responses:
-        "410":
-          description: Removed. Use `/networks/{network}/pools/search` with the
-            `dex_name` query parameter instead.
+        "402":
+          $ref: "#/components/responses/QuotaExceeded"
+        "429":
+          $ref: "#/components/responses/RateLimited"
   "/networks/{network}/pools/{pool_address}":
     get:
       operationId: getPoolDetails
@@ -1080,6 +1024,10 @@ paths:
                     type: number
                   price_time:
                     type: string
+                  last_updated:
+                    type: string
+                    format: date-time
+                    description: When the served data last changed.
                   24h:
                     type: object
                     properties:
@@ -1209,6 +1157,7 @@ paths:
                   last_price: 233.8201620378884
                   last_price_usd: 234.1327298484414
                   price_time: "2025-01-27T16:12:16.000Z"
+                  last_updated: "2025-01-27T16:12:15Z"
                   24h:
                     last_price_usd_change: -7.991645970375927
                     volume_usd: 808169281.4395584
@@ -1277,6 +1226,10 @@ paths:
                   error:
                     type: string
                     example: Pool not found.
+        "402":
+          $ref: "#/components/responses/QuotaExceeded"
+        "429":
+          $ref: "#/components/responses/RateLimited"
   "/networks/{network}/pools/{pool_address}/ohlcv":
     get:
       operationId: getPoolOHLCV
@@ -1288,17 +1241,28 @@ paths:
 
         potentially over a specified time range.  
 
-        - **start** is **required** to set the beginning of the data window.  
+        - **start** is **required** to set the beginning of the data window;
+        `-24h` selects the last 24 hours, and other relative offsets such as `-7d` work too.  
 
         - **end** is optional; if omitted, data is returned for the "start" date
         only.  
 
-        - **limit** can control how many data points to retrieve (e.g., maximum
-        of 100).  
+        - **limit** caps how many candles come back; the parameter below
+        states the maximum.  
 
-        - **interval** defines the granularity (e.g., 1h, 4h, 1d).  
+        - **interval** defines the granularity, from `1m` to `24h`; the
+        parameter below lists every value.  
 
         - **inverted_price** indicates whether to invert the main price ratio.
+
+        Plan limits (requests outside them get `403`):
+
+        | Plan | Intervals | History |
+        |------|-----------|---------|
+        | No API key | `1h` and up | last 24 hours |
+        | Free key | `10m` and longer | last 7 days |
+        | Dev | all | last 30 days |
+        | Pro | all | unlimited |
       parameters:
         - $ref: "#/components/parameters/networkParam"
         - $ref: "#/components/parameters/poolAddressParam"
@@ -1347,6 +1311,10 @@ paths:
                   error:
                     type: string
                     example: Pool not found on this network.
+        "402":
+          $ref: "#/components/responses/QuotaExceeded"
+        "429":
+          $ref: "#/components/responses/RateLimited"
   "/networks/{network}/pools/{pool_address}/transactions":
     get:
       operationId: getPoolTransactions
@@ -1424,6 +1392,10 @@ paths:
           description: The specified network or pool address is invalid.
         "404":
           description: Network not found or pool not found.
+        "402":
+          $ref: "#/components/responses/QuotaExceeded"
+        "429":
+          $ref: "#/components/responses/RateLimited"
   /networks/{network}/pools/filter:
     get:
       operationId: filterNetworkPools
@@ -1437,6 +1409,10 @@ paths:
       responses:
         "410":
           description: Removed. Use `/networks/{network}/pools/search` instead.
+        "402":
+          $ref: "#/components/responses/QuotaExceeded"
+        "429":
+          $ref: "#/components/responses/RateLimited"
   "/networks/{network}/pools":
     get:
       operationId: getNetworkPools
@@ -1450,6 +1426,10 @@ paths:
       responses:
         "410":
           description: Removed. Use `/networks/{network}/pools/search` instead.
+        "402":
+          $ref: "#/components/responses/QuotaExceeded"
+        "429":
+          $ref: "#/components/responses/RateLimited"
   /pools:
     get:
       operationId: getTopPools
@@ -1461,6 +1441,10 @@ paths:
       responses:
         "410":
           description: Removed. Use `/pools/search` instead.
+        "402":
+          $ref: "#/components/responses/QuotaExceeded"
+        "429":
+          $ref: "#/components/responses/RateLimited"
   "/networks/{network}/tokens/{token_address}":
     get:
       operationId: getTokenDetails
@@ -1569,6 +1553,10 @@ paths:
                   error:
                     type: string
                     example: Token not found on this network.
+        "402":
+          $ref: "#/components/responses/QuotaExceeded"
+        "429":
+          $ref: "#/components/responses/RateLimited"
   "/networks/{network}/tokens/{token_address}/pools":
     get:
       operationId: getTokenPools
@@ -1576,16 +1564,17 @@ paths:
         - Tokens
       summary: Get top X pools for a token.
       deprecated: true
-      description: Removed. Use `/networks/{network}/pools/search` with the
-        `token_address` query parameter instead. The old `reorder` and
-        `address` (second-token pair filter) parameters have no replacement.
+      description: Removed. Use `/networks/{network}/pools/search` with the `token_address` filter instead.
       parameters:
         - $ref: "#/components/parameters/networkParam"
         - $ref: "#/components/parameters/tokenAddressParam"
       responses:
         "410":
-          description: Removed. Use `/networks/{network}/pools/search` with the
-            `token_address` query parameter instead.
+          description: Removed. Use `/networks/{network}/pools/search` with the `token_address` filter instead.
+        "402":
+          $ref: "#/components/responses/QuotaExceeded"
+        "429":
+          $ref: "#/components/responses/RateLimited"
   /search:
     get:
       operationId: search
@@ -1743,6 +1732,10 @@ paths:
                   error:
                     type: string
                     example: Missing query parameter.
+        "402":
+          $ref: "#/components/responses/QuotaExceeded"
+        "429":
+          $ref: "#/components/responses/RateLimited"
   /stats:
     get:
       operationId: getStats
@@ -1774,10 +1767,10 @@ paths:
                     type: integer
                     description: Count of tokens recognized across all networks.
               example:
-                chains: 12
-                factories: 54
-                pools: 23456
-                tokens: 8920
+                chains: 36
+                factories: 241
+                pools: 41361610
+                tokens: 37676763
         "400":
           description: Bad request. Invalid parameters.
           content:
@@ -1798,6 +1791,10 @@ paths:
                   error:
                     type: string
                     example: Unexpected server error. Please try again later.
+        "402":
+          $ref: "#/components/responses/QuotaExceeded"
+        "429":
+          $ref: "#/components/responses/RateLimited"
   "/networks/{network}/multi/prices":
     get:
       operationId: getTokenMultiPrices
@@ -1860,6 +1857,10 @@ paths:
                     type: string
                 example:
                   error: "at least one valid token required."
+        "402":
+          $ref: "#/components/responses/QuotaExceeded"
+        "429":
+          $ref: "#/components/responses/RateLimited"
   /networks/{network}/tokens/filter:
     get:
       operationId: filterNetworkTokens
@@ -1873,6 +1874,10 @@ paths:
       responses:
         "410":
           description: Removed. Use `/networks/{network}/tokens/search` instead.
+        "402":
+          $ref: "#/components/responses/QuotaExceeded"
+        "429":
+          $ref: "#/components/responses/RateLimited"
   /networks/{network}/tokens/top:
     get:
       operationId: getTopTokens
@@ -1886,8 +1891,257 @@ paths:
       responses:
         "410":
           description: Removed. Use `/networks/{network}/tokens/search` instead.
+        "402":
+          $ref: "#/components/responses/QuotaExceeded"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+  /usage:
+    get:
+      operationId: getUsage
+      tags:
+        - Utils
+      summary: Get your plan and current-period credit usage.
+      description: |
+        Returns the plan the request was evaluated against and, for requests
+        authenticated with an API key on `api-pro.dexpaprika.com`, the account
+        email plus credits used and remaining in the current billing period.
+
+        Without an API key the response carries the plan only; all other
+        fields are omitted.
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [plan]
+                properties:
+                  plan:
+                    type: string
+                    description: Plan the request was evaluated against (same value as the `X-Api-Plan` header), one of `keyless`, `free`, `dev`, `pro`, `enterprise`.
+                  email:
+                    type: string
+                    description: Account email of the API key owner. Omitted for keyless requests or when no email is on file.
+                  requests_used:
+                    type: integer
+                    description: Credits consumed in the current billing period, summed across all of the account's keys. Omitted when not applicable.
+                  requests_left:
+                    type: integer
+                    description: Credits remaining in the current billing period, including purchased packs and already-charged overage blocks. Omitted when not applicable.
+                  period_started_at:
+                    type: string
+                    format: date-time
+                    description: Start of the current period, the billing period on Dev and Pro or the rolling 30-day window on keyless and free keys. Omitted when not applicable.
+                  period_ends_at:
+                    type: string
+                    format: date-time
+                    description: End of the current billing period. Omitted when not applicable.
+              examples:
+                with_key:
+                  summary: Authenticated with an API key (api-pro)
+                  value:
+                    plan: pro
+                    email: user@example.com
+                    requests_used: 1250000
+                    requests_left: 3750000
+                    period_started_at: "2026-07-12T00:00:00Z"
+                    period_ends_at: "2026-08-12T00:00:00Z"
+                without_key:
+                  summary: No API key
+                  value:
+                    plan: free
+        "402":
+          $ref: "#/components/responses/QuotaExceeded"
+        "429":
+          $ref: "#/components/responses/RateLimited"
 components:
+  responses:
+    RateLimited:
+      description: >
+        Per-minute rate limit exceeded. Slow down and retry after the number
+        of seconds given in the `Retry-After` header. Credits are unaffected;
+        `credits` appears in the body only when the counters were already at
+        hand for the request.
+      headers:
+        Retry-After:
+          description: Seconds to wait before retrying.
+          schema:
+            type: integer
+        RateLimit-Limit:
+          description: Request limit for the current minute.
+          schema:
+            type: integer
+        RateLimit-Remaining:
+          description: Requests left in the current minute.
+          schema:
+            type: integer
+        RateLimit-Reset:
+          description: Seconds until the minute limit resets.
+          schema:
+            type: integer
+        X-Credits-Limit:
+          description: Monthly credit limit for this caller.
+          schema:
+            type: integer
+        X-Credits-Remaining:
+          description: Credits left in the current month.
+          schema:
+            type: integer
+        X-Credits-Reset:
+          description: Seconds until the monthly credits reset.
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/QuotaErrorBody"
+          example:
+            error: "rate_limited"
+            tier: "pro"
+            message: "Request rate exceeded. Retry in 12 seconds."
+            credits:
+              {
+                plan: 5000000,
+                packs: 0,
+                limit: 5000000,
+                used: 1240880,
+                remaining: 3759120,
+              }
+            retry_after: 12
+    QuotaExceeded:
+      description: >
+        Credit allowance exhausted. Retrying will not help; the body names the
+        available next step per tier: register (keyless), upgrade (free key),
+        or enable overage and raise your spend cap (Dev and Pro). `resets_at`
+        is present on Dev and Pro only and holds the end of the billing period
+        (UTC); keyless and free keys count over a rolling 30-day window.
+        Deliberately carries no `Retry-After` header.
+      headers:
+        X-Credits-Limit:
+          description: Monthly credit limit for this caller.
+          schema:
+            type: integer
+        X-Credits-Remaining:
+          description: Credits left in the current month.
+          schema:
+            type: integer
+        X-Credits-Reset:
+          description: Seconds until the monthly credits reset.
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/QuotaErrorBody"
+          examples:
+            keyless:
+              summary: Keyless client over the rolling 30-day limit
+              value:
+                error: "payment_required"
+                tier: "keyless"
+                message: "Credit limit for the last 30 days reached for unauthenticated use. Register for a free API key to get more credits/month."
+                credits: { limit: 10000, used: 10000, remaining: 0 }
+            pro_plan_exhausted:
+              summary: Pro key with plan credits drained, overage off
+              value:
+                error: "payment_required"
+                tier: "pro"
+                message: "Monthly credit limit reached — enable overage in the portal."
+                credits:
+                  {
+                    plan: 5000000,
+                    packs: 0,
+                    limit: 5000000,
+                    used: 5000000,
+                    remaining: 0,
+                  }
+                overage: { enabled: false }
+                resets_at: "2026-09-01T00:00:00Z"
   schemas:
+    QuotaErrorBody:
+      type: object
+      description: >
+        Structured body carried by every 402 and 429 emitted by the billing
+        gate. The shape is constant across scenarios; only fields describing
+        an available action appear. `message` is always a top-level string,
+        so clients parsing the legacy `{"message": ...}` shape keep working.
+      required: [error, tier, message]
+      properties:
+        error:
+          type: string
+          enum: [payment_required, rate_limited]
+          description: Machine-readable discriminator matching the status code.
+        tier:
+          type: string
+          enum: [keyless, free, dev, pro, enterprise]
+          description: The billing tier the request was evaluated against.
+        message:
+          type: string
+          description: Human-readable message naming the next action.
+        credits:
+          type: object
+          description: >
+            Credit counters for the current period. One credit is one request.
+            `plan` and `packs` are split out for Pro keys only. `limit` is
+            plan + packs; usage served through overage can exceed it.
+          properties:
+            plan:
+              type: integer
+              format: int64
+            packs:
+              type: integer
+              format: int64
+            limit:
+              type: integer
+              format: int64
+            used:
+              type: integer
+              format: int64
+            remaining:
+              type: integer
+              format: int64
+        overage:
+          type: object
+          description: >
+            Overage state, present on Pro 402 bodies. Money amounts are
+            decimal strings, never floats.
+          properties:
+            enabled:
+              type: boolean
+            cap:
+              type: string
+              example: "200.00"
+            used:
+              type: string
+              example: "200.00"
+            block:
+              type: string
+              example: "20.00 per 1M credits"
+        resets_at:
+          type: string
+          format: date-time
+          description: When the monthly allowance rolls over (UTC). 402 only.
+        retry_after:
+          type: integer
+          description: Seconds to wait before retrying. 429 only.
+        offer:
+          type: object
+          description: Early-adopter offer, present on the free-tier 402 only.
+          properties:
+            description:
+              type: string
+            expires_at:
+              type: string
+              format: date-time
+        links:
+          type: object
+          additionalProperties:
+            type: string
+          description: >
+            Next-step URLs. Keys vary by scenario: register, upgrade, packs,
+            portal, usage, docs. Absent until the customer-facing pages go
+            live.
     ArrayOfDexes:
       type: object
       description: A paginated response containing a list of DEX objects.
@@ -1945,8 +2199,8 @@ components:
               description: Total number of pages available.
       example:
         dexes:
-          - id: uniswap_v2
-            name: Uniswap V2
+          - dex_id: uniswap_v2
+            dex_name: Uniswap V2
         page_info:
           limit: 100
           page: 1
@@ -2005,7 +2259,7 @@ components:
         last_updated:
           type: string
           format: date-time
-          description: When the token data was last updated.
+          description: When the served data last changed. Keyless and free-key data refreshes about once a minute, paid data is realtime.
         summary:
           $ref: "#/components/schemas/TokenSummary"
       example:
@@ -2224,10 +2478,6 @@ components:
           type: number
         price_usd_max:
           type: number
-        price_change_percentage_24h_min:
-          type: number
-        price_change_percentage_24h_max:
-          type: number
         price_change_percentage_6h_min:
           type: number
         price_change_percentage_6h_max:
@@ -2239,6 +2489,10 @@ components:
         price_change_percentage_5m_min:
           type: number
         price_change_percentage_5m_max:
+          type: number
+        price_change_percentage_24h_min:
+          type: number
+        price_change_percentage_24h_max:
           type: number
         dex_name:
           type: string
@@ -2303,10 +2557,6 @@ components:
           type: number
         price_usd_max:
           type: number
-        price_change_percentage_24h_min:
-          type: number
-        price_change_percentage_24h_max:
-          type: number
         price_change_percentage_6h_min:
           type: number
         price_change_percentage_6h_max:
@@ -2318,6 +2568,10 @@ components:
         price_change_percentage_5m_min:
           type: number
         price_change_percentage_5m_max:
+          type: number
+        price_change_percentage_24h_min:
+          type: number
+        price_change_percentage_24h_max:
           type: number
         dex_name:
           type: string
@@ -2808,6 +3062,11 @@ components:
           type: number
           description: The current price of the token in USD.
           example: 1850.75
+        last_updated:
+          type: string
+          format: date-time
+          description: When the served data last changed. Keyless and free-key data refreshes about once a minute, paid data is realtime. Returned by the token price endpoints only.
+          example: "2025-01-27T16:12:15Z"
 
   parameters:
     pageParam:
@@ -2817,7 +3076,7 @@ components:
         type: integer
         minimum: 0
         maximum: 1000
-      description: Zero-based page index for paginated results.
+      description: Page number, starting at 1. A value of 0 is served as page 1.
     limitParam:
       name: limit
       in: query
@@ -2836,18 +3095,6 @@ components:
           - asc
           - desc
       description: Sort order for the requested data (ascending or descending).
-    orderParam:
-      name: order_by
-      in: query
-      schema:
-        type: string
-        enum:
-          - volume_usd
-          - price_usd
-          - transactions
-          - last_price_change_usd_24h
-          - created_at
-      description: Field by which to order the returned data.
     networkParam:
       name: network
       in: path
@@ -2858,17 +3105,6 @@ components:
         Network slug or ID (e.g., 'solana'). You can find the list of supported
         networks with their IDs here: [/networks](/api-reference/networks).
       example: solana
-    dexParam:
-      name: dex
-      in: path
-      required: true
-      schema:
-        type: string
-      description: >-
-        DEX identifier or name (e.g., 'uniswap_v2'). You can find the list of
-        supported DEXes with their IDs here:
-        [/networks/{network}/dexes](/api-reference/dexes).
-      example: uniswap_v2
     poolAddressParam:
       name: pool_address
       in: path
@@ -2902,15 +3138,17 @@ components:
       name: start
       in: query
       required: true
+      example: "-24h"
       schema:
         type: string
         description: |
-          Start time for the OHLCV data.
+          Start time for the OHLCV data. Required; "-24h" selects the last 24 hours.
           Accepted formats:
+          - Relative offset from now (e.g., "-24h", "-7d", "-90m"; units: s, m, h, d)
           - Unix timestamp
           - RFC3339 timestamp (e.g., "2023-10-27T08:07:20Z")
           - Date (e.g., "2023-10-27", interpreted as 00:00:00 UTC)
-        example: "1741507640"
+        example: "-24h"
     ohlcvEndParam:
       name: end
       in: query
@@ -2918,8 +3156,9 @@ components:
       schema:
         type: string
         description: |
-          Start time for the OHLCV data.
+          End time for the OHLCV data.
           Accepted formats:
+          - Relative offset from now (e.g., "-1h", "-2d")
           - Unix timestamp
           - RFC3339 timestamp (e.g., "2023-10-27T10:00:00Z")
           - Date (e.g., "2023-10-27", interpreted as 00:00:00 UTC)
@@ -2931,9 +3170,9 @@ components:
       schema:
         type: integer
         format: int32
-        default: 1
+        default: 10
         minimum: 1
-        maximum: 366
+        maximum: 1000
       description: Maximum number of OHLCV records to return.
     ohlcvIntervalParam:
       name: interval
@@ -2943,7 +3182,9 @@ components:
         type: string
         enum: ["1m", "5m", "10m", "15m", "30m", "1h", "6h", "12h", "24h"]
         default: "24h"
-      description: The time interval for each OHLCV record (candle).
+      description: |
+        The time interval for each OHLCV record (candle). `1m` and `5m` need a
+        Dev or Pro plan; intervals below `1h` need at least a free API key.
     ohlcvInvertedPriceParam:
       name: inversed
       in: query
