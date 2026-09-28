@@ -1,12 +1,12 @@
 ---
 name: dexpaprika-api
 description: Access the DexPaprika API, CLI, and streaming service to query DEX data including networks, pools, tokens, and trading activity. Use this skill when making HTTP requests to api.dexpaprika.com or streaming.dexpaprika.com, or when using dexpaprika-cli for blockchain DEX information.
-version: 2.8.0
+version: 2.9.0
 ---
 
 # DexPaprika API Skill
 
-> **Freshness check (run once per session, before relying on this skill):** this file is `version: 2.8.0`, verified against the live API on 2026-09-25. Fetch the latest copy's header:
+> **Freshness check (run once per session, before relying on this skill):** this file is `version: 2.9.0`, verified against the live API on 2026-09-28. Fetch the latest copy's header:
 >
 > ```bash
 > curl -s -r 0-400 https://raw.githubusercontent.com/coinpaprika/skills/main/dexpaprika-api/SKILL.md
@@ -63,6 +63,10 @@ dexpaprika-cli filter-tokens solana --fdv-min 1000000 --liquidity-usd-min 50000 
 
 # Filter pools by volume, liquidity, txns, creation date
 dexpaprika-cli pool-filter ethereum --volume-24h-min 500000 --liquidity-usd-min 50000 --output json --raw
+
+# Relative times (CLI 0.8.0+): pools created in the last day, swaps in the last hour
+dexpaprika-cli pool-filter solana --created-after -24h --sort-by created_at --output json --raw
+dexpaprika-cli transactions ethereum 0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640 --from -1h --output json --raw
 
 # Batch token prices
 dexpaprika-cli prices ethereum --tokens 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2,0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48 --output json --raw
@@ -337,7 +341,7 @@ Two pagination models coexist:
 
 ## Timestamps
 
-All timestamps support Unix, RFC3339, or `yyyy-mm-dd` format. OHLCV `start` and `end` also take an offset from now (`-24h`, `-7d`, `-90m`). OHLCV returns up to 1000 candles per request.
+All timestamps support Unix, RFC3339, or `yyyy-mm-dd` format, and an offset back from now (`-24h`, `-7d`, `-90m`; units s, m, h, d). That covers OHLCV `start` and `end`, pool transactions `from` and `to`, and `created_after` and `created_before` on the four `/search` endpoints, so `from=-1h` is the last hour of swaps and `created_after=-24h` what was created in the last day. Transactions `from` is inclusive and `to` exclusive, and nothing older than 7 days comes back; the search bounds include both ends and the response echoes the resolved unix value in `query`. OHLCV returns up to 1000 candles per request.
 
 **OHLCV depends on the plan.** No key: `1h` and longer over the last 24 hours. Free key: `10m` and longer over 7 days. Dev: every interval over 30 days. Pro and Enterprise: unlimited. Outside those limits the API answers `403` with a message naming the plan that allows it. `start=-24h` works on every plan. Current limits: https://docs.dexpaprika.com/knowledge-base/rate-limits#ohlcv-limits-by-plan
 
