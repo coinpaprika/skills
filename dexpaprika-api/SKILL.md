@@ -1,12 +1,12 @@
 ---
 name: dexpaprika-api
 description: Access the DexPaprika API, CLI, and streaming service to query DEX data including networks, pools, tokens, and trading activity. Use this skill when making HTTP requests to api.dexpaprika.com or streaming.dexpaprika.com, or when using dexpaprika-cli for blockchain DEX information.
-version: 2.9.0
+version: 2.9.1
 ---
 
 # DexPaprika API Skill
 
-> **Freshness check (run once per session, before relying on this skill):** this file is `version: 2.9.0`, verified against the live API on 2026-09-28. Fetch the latest copy's header:
+> **Freshness check (run once per session, before relying on this skill):** this file is `version: 2.9.1`, verified against the live API on 2026-09-28. Fetch the latest copy's header:
 >
 > ```bash
 > curl -s -r 0-400 https://raw.githubusercontent.com/coinpaprika/skills/main/dexpaprika-api/SKILL.md
@@ -96,10 +96,8 @@ curl -s "https://api.dexpaprika.com/networks/ethereum/tokens/0xc02aaa39b223fe8d0
 ```
 
 **Authentication.** If you have a key, send it as the entire `Authorization` header
-value. **There is no `Bearer` prefix** and no other scheme word: `Authorization: ApiKey
-api_...` and `Authorization: Token api_...` return `401`, because the header is compared
-against the key exactly as sent. This is the opposite of almost every other API, so
-when generating code, emit the bare key.
+value: the key alone, with nothing in front of it. That differs from most other APIs,
+so when generating code, emit the bare key.
 
 ```bash
 curl -s -H "Authorization: api_YOUR_KEY" "https://api.dexpaprika.com/networks"
@@ -175,15 +173,19 @@ No API key needed to start. Provides 17 tools for querying networks, pools, toke
 
 Documentation: https://docs.dexpaprika.com/ai-integration/hosted-mcp-server
 
-### Option 4: Streaming API (token prices + pool reserves)
+### Option 4: Streaming API (prices, reserves, swaps, OHLCV candles)
 
 Base URL: `https://streaming.dexpaprika.com`
 
-Two SSE feeds share one transport:
-- `/sse/prices`: token price updates, pushed when a swap moves the price. Updates are swap-driven, not clock-driven or per block: a quiet chain can go minutes without emitting anything.
-- `/sse/reserves`: pool reserve updates with USD-denominated deltas, emitted when a swap changes the pool's reserves, not on every block.
+Four SSE feeds share one transport, and access differs per feed:
+- `/sse/prices`: token price updates, pushed when a swap moves the price. Updates are swap-driven, not clock-driven or per block: a quiet chain can go minutes without emitting anything. Keyless on the showcase tokens, a free key for any token.
+- `/sse/reserves`: pool reserve updates with USD-denominated deltas, emitted when a swap changes the pool's reserves, not on every block. Free key required.
+- `/sse/transactions`: individual swaps, for one pool (`method=pool`) or every pool a token trades in (`method=token`). Free key required.
+- `/sse/ohlcv`: sealed token candles at `1s`, `5s` or `60s`. Pro plan, on `https://streaming-pro.dexpaprika.com`.
 
-**Limits:** 25 subscriptions per POST connection. 10 concurrent SSE streams per IP. A `ping` event lands every 15 s. Keyless streaming covers 36 showcase tokens, one per chain; a free API key opens streaming for any token.
+Keyless requests to a feed or token that needs a key get `403` with `"error":"preview_only"`.
+
+**Limits:** 25 subscriptions per POST connection. 10 concurrent SSE streams per IP. A `ping` event lands every 15 s. Keyless streaming covers 35 showcase tokens, a flagship asset on most chains; a free API key opens streaming for any token.
 
 Single token price (GET):
 ```bash
@@ -197,12 +199,12 @@ curl --http1.1 -N -X POST "https://streaming.dexpaprika.com/sse/prices" \
   -d '[{"chain":"ethereum","address":"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2","method":"token_price"}]'
 ```
 
-Pool reserves (GET):
+Pool reserves (GET, free key):
 ```bash
-curl --http1.1 -N "https://streaming.dexpaprika.com/sse/reserves?method=pool_reserves&chain=ethereum&address=0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640"
+curl --http1.1 -N -H "Authorization: $DEXPAPRIKA_API_KEY" "https://streaming.dexpaprika.com/sse/reserves?method=pool_reserves&chain=ethereum&address=0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640"
 ```
 
-`token_price` event fields: `address`, `chain`, `price` (USD as string), `timestamp`, `timestamp_price` (both unix seconds). The legacy `t_p` method emits a compact `{a, c, p, t, t_p}` shape on the deprecated `/stream` path only and should not be used in new code.
+`token_price` event fields: `address`, `chain`, `price` (USD as string), `timestamp`, `timestamp_price` (both unix seconds). The legacy `t_p` method still answers on `/sse/prices` with a compact `{a, c, p, t, t_p}` shape; it is not in the spec, so do not use it in new code. `/stream` itself is gone (`410`).
 
 The reserves feed now emits **method-named events**: the old single `reserve_update` event is gone. Match on the two event names instead:
 
@@ -215,12 +217,12 @@ Raw integer fields (`reserve`, `delta`, `block`, `previous_block`) exceed `Numbe
 
 ```bash
 # GET with request_id; the value comes back on each pool_reserves event
-curl --http1.1 -N "https://streaming.dexpaprika.com/sse/reserves?method=pool_reserves&chain=ethereum&address=0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640&request_id=12345"
+curl --http1.1 -N -H "Authorization: $DEXPAPRIKA_API_KEY" "https://streaming.dexpaprika.com/sse/reserves?method=pool_reserves&chain=ethereum&address=0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640&request_id=12345"
 ```
 
 **Important:** Streaming requires HTTP/1.1. Add `--http1.1` with curl. One invalid asset cancels the entire stream with HTTP 400. SSE parsers must buffer one message between blank-line boundaries before dispatching: both `event:`/`data:` orderings are valid and the server uses either, and a `request_id:` line can appear alongside `event:`/`data:`.
 
-For the full streaming reference (events, errors, parser patterns), read `references/streaming-api.md`.
+For the full streaming reference (all four feeds, events, errors, parser patterns), read `references/streaming-api.md`.
 
 ### Option 5: SDKs
 

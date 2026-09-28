@@ -1,13 +1,28 @@
 # DexPaprika Streaming API Reference
 
-Two SSE feeds share one transport. No API key required to start.
+Four SSE feeds share one transport. **Access differs per feed, and only one of them is keyless.**
 
-Streaming is metered the same way as REST: each update delivered counts as one credit against the monthly quota. Updates are swap-driven, not clock-driven and not per block: they are pushed only when a swap moves the value, so a quiet chain can go minutes without emitting anything while a fast-moving one draws down quota like polling would. Connection caps: 25 subscriptions per connection, 10 concurrent streams per IP.
+Streaming is metered the same way as REST: each update delivered counts as one credit. Updates are swap-driven, not clock-driven and not per block: they are pushed only when a swap moves the value, so a quiet chain can go minutes without emitting anything while a fast-moving one draws down quota like polling would. Connection caps: 25 subscriptions per connection, 10 concurrent streams per IP. Current allowances are on https://dexpaprika.com/api/pricing; do not hard-code them in published copy.
 
-| Feed | Endpoint | When it fires | Use for |
+| Feed | Endpoint | Access | When it fires |
 |---|---|---|---|
-| Token prices | `/sse/prices` | when a swap moves the price | tickers, portfolios, alerts |
-| Pool reserves | `/sse/reserves` | when a swap changes the pool's reserves | liquidity dashboards, MEV, real-time TVL |
+| Token prices | `/sse/prices` | keyless on the 35 preview assets only, free key for any asset | when a swap moves the price |
+| Pool reserves | `/sse/reserves` | free key | when a swap changes the pool's reserves |
+| Swap transactions | `/sse/transactions` | free key | on every swap |
+| Token OHLCV candles | `/sse/ohlcv` | **Pro only** | when a candle bucket seals, and only if it saw a swap |
+
+Measured 2026-09-28, keyless, all four on one pass:
+
+| Request | Response |
+|---|---|
+| `/sse/prices` on WETH ethereum or SOL (preview assets) | `200`, `token_price` events |
+| `/sse/prices` on USDC ethereum (not a preview asset) | `403 {"error":"preview_only","tier":"keyless","message":"keyless access is limited to preview streams ...","links":{...}}` |
+| `/sse/reserves`, `/sse/transactions` | `403 {"error":"preview_only","tier":"keyless","message":"this stream requires an API key ...","links":{...}}` |
+| `/sse/ohlcv` | `403 {"message":"this endpoint requires a Pro plan"}` |
+
+Match on the `error` field (`preview_only`) rather than the message text: the human sentence contains an em dash and gets reworded. The `links` object carries URLs for registering, the docs and pricing that you can show the user.
+
+**Hosts.** Keyless and free keys use `https://streaming.dexpaprika.com`. Pro and Enterprise use `https://streaming-pro.dexpaprika.com`. They are not interchangeable, and `/sse/ohlcv` needs the Pro host. On the `-pro` hosts a request the edge does not recognise, one with no `Authorization` header for example, gets a `403` HTML page instead of JSON.
 
 Base URL: `https://streaming.dexpaprika.com`
 
@@ -32,11 +47,15 @@ Either feed can emit any of these:
 | `token_price` | prices feed | `{address, chain, price, timestamp, timestamp_price, token_price}` |
 | `pool_reserves` | reserves feed | `{chain, pool_id, block, previous_block, tokens[], total_reserve_usd, total_delta_usd, timestamp, block_timestamp}` |
 | `token_reserves` | reserves feed | `{chain, token_id, reserve, delta, block, price_usd, reserve_usd, delta_usd, updated_at, timestamp}` |
-| `ping` | both | `{"time": <unix>}` |
-| `warning` | both | `{"message": "..."}` (non-fatal notice, e.g. deprecation) |
-| `error` | both | `{"message": "..."}` (stream-terminating error) |
+| `pool` / `token` | transactions feed | one swap. Event name matches the `method` you subscribed with |
+| `token_ohlcv` | ohlcv feed | `{chain, token_id, interval, timestamp, open, high, low, close, avg, volume_usd, txns}` |
+| `ping` | all | `{"time": <unix>}` |
+| `warning` | all | `{"message": "..."}` (non-fatal notice, e.g. deprecation) |
+| `error` | all | `{"message": "..."}` (stream-terminating error) |
 
-The legacy `t_p` event and compact `{a, c, p, t, t_p}` shape exist on the deprecated `/stream` path only.
+**Only data events are billed.** `ping`, `warning` and `error` are written without firing the metering callback, so an idle connection costs nothing.
+
+`method=t_p` still answers on `/sse/prices` with the legacy compact `{a, c, p, t, t_p}` shape under the event name `t_p` (measured 2026-09-28). It is not in the spec; use `token_price` in new code.
 
 **Reserves events were restructured.** The old single `reserve_update` event no longer exists. The server now emits one event named after the subscription method:
 
@@ -126,6 +145,79 @@ Content-Type: application/json
 ```
 
 Entries can mix `pool_reserves` and `token_reserves`. Max 25 per request body.
+
+---
+
+## Swap transactions (GET and POST)
+
+```
+GET /sse/transactions?method=pool&chain={network}&address={pool_address}
+GET /sse/transactions?method=token&chain={network}&address={token_address}
+```
+
+Free key required. `method=pool` subscribes to one pool; `method=token` subscribes to every pool the token trades in, which on a major asset is three orders of magnitude more traffic and therefore more credits. POST takes up to 25 subscriptions, same shape as the other feeds.
+
+Wire-format traps, both of which hide on Solana and bite on 18-decimal EVM tokens:
+
+- `amount_0` / `amount_1` are raw signed **JSON numbers**, not strings, and routinely exceed `Number.MAX_SAFE_INTEGER`. The `_usd` fields are ordinary safe floats. `block_number` is already a string.
+- `token_0` is not necessarily the same token as REST's `token_0` for the same pool. Resolve by address, never by index.
+- Direction is not a field. Derive it from the sign of `amount_0`.
+- `volume_usd` is about half the notional, roughly one side of the trade. Do not sum it against a REST 24h volume figure.
+
+Full write-up: https://docs.dexpaprika.com/streaming/transactions-streaming
+
+---
+
+## Token OHLCV candles (GET, Pro only)
+
+```
+GET /sse/ohlcv?method=token_ohlcv&chain={network}&address={token_address}&interval=60s
+```
+
+**Pro plan and the `streaming-pro.dexpaprika.com` host.** Keyless and free keys get `403 {"message":"this endpoint requires a Pro plan"}`. One subscription per connection; there is no POST form.
+
+| Parameter | Required | Description |
+|---|---|---|
+| method | yes | `token_ohlcv` (the only value) |
+| chain | yes | Network ID. Every indexed chain broadcasts candles |
+| address | yes | Token contract address |
+| interval | no | `1s`, `5s` or `60s`. **Defaults to `1s`, the most expensive choice** |
+| request_id | no | uint32, echoed on data events |
+| limit | no | Max event count **including backfill**, then the server closes |
+| since | no | Unix seconds. Backfills candles before live updates. Must be within the last 15 minutes |
+| `Last-Event-ID` | no | **Request header**, not a query param. Event timestamp to resume from |
+
+```bash
+# live
+curl --http1.1 -N -H "Authorization: $DEXPAPRIKA_API_KEY" \
+  "https://streaming-pro.dexpaprika.com/sse/ohlcv?method=token_ohlcv&chain=ethereum&address=0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48&interval=60s"
+
+# with the last 5 minutes replayed first
+curl --http1.1 -N -H "Authorization: $DEXPAPRIKA_API_KEY" \
+  "https://streaming-pro.dexpaprika.com/sse/ohlcv?method=token_ohlcv&chain=solana&address=So11111111111111111111111111111111111111112&interval=5s&since=$(( $(date +%s) - 300 ))"
+```
+
+### The five behaviours that are not in the spec
+
+Each one changes how a consumer is written.
+
+1. **A candle exists only where a swap did.** A bucket is created by the first swap in the interval and is never sealed if it stayed empty. `interval=1s` is a *ceiling* of 60 events a minute, not a rate. The bound is `candles/hour <= min(3600 / interval_seconds, swaps/hour)`, so a quiet token costs almost nothing on any interval.
+2. **Sealed candles get republished.** A swap landing after its bucket sealed recomputes and resends the candle under **the same `timestamp`**, with updated values, and bills again. Late windows: `1s` accepts for 2 min, `5s` for 5 min, `60s` for 10 min. Seal delay after the bucket closes is 1s / 2s / 3s. **Key your store on `timestamp` and overwrite.** Appending draws the same candle twice.
+3. **`since` and `Last-Event-ID` diverge past 15 minutes, deliberately.** `since` older than the window is a `400`; `Last-Event-ID` older is **silently clamped** to 15 minutes ago, so a browser back from a long outage reconnects instead of failing. A future or unparseable `Last-Event-ID` is ignored and you get live only. `since` wins when both are sent.
+4. **The resume boundary is inclusive** (`WHERE timestamp >= ?`), so resuming at the last `id:` you saw redelivers that candle. Harmless if you overwrite; pass `since` one second later to avoid paying for it.
+5. **Backfill is billed and counts toward `limit`.** `since` plus a small `limit` can close the connection before a single live candle arrives.
+
+Two more worth knowing: the `id:` line is the candle timestamp in unix seconds, on live events as well as backfilled ones, which is what makes browser `EventSource` resume work with no code. And **`avg` is an unweighted mean** of the price samples, not volume weighted, despite the upstream tick source being VWAP-derived.
+
+Cost ceiling per subscription, arithmetic from the interval alone:
+
+| Interval | Ceiling/min | Ceiling per 30 days |
+|---|---|---|
+| `1s` | 60 | 2,592,000 |
+| `5s` | 12 | 518,400 |
+| `60s` | 1 | 43,200 |
+
+Full write-up: https://docs.dexpaprika.com/streaming/ohlcv-streaming
 
 ---
 
@@ -253,7 +345,14 @@ SSE streaming requires HTTP/1.1. HTTP/2 (curl's default for HTTPS) may not behav
 | 200 | Connected, streaming | (SSE event stream) |
 | 400 | Bad params, unsupported chain, asset not found, or one invalid asset in a batch | `{"message": "..."}` |
 | 400 | Too many entries in POST body (26+) | `{"message":"too many assets, max 25 allowed"}` (`/sse/prices`) or `{"message":"too many subscriptions"}` (`/sse/reserves`) |
+| 403 | Keyless on a feed or asset that needs a key | `{"error":"preview_only","tier":"keyless","message":"...","links":{...}}` |
+| 403 | `/sse/ohlcv` without a Pro plan | `{"message":"this endpoint requires a Pro plan"}` |
+| 403 | `-pro` host, a request the edge does not recognise (no `Authorization` header, for example) | HTML block page, no JSON |
+| 401 | Key present and rejected | `{"message":"api key verification has failed"}` |
+| 404 | `/sse/ohlcv`, token not indexed on that chain | `{"message":"token not found: {chain}/{address}"}` |
 | 429 | IP stream limit exceeded | `{"message":"ip stream limit exceeded"}` |
+
+`403` and `401` mean different things and the difference is diagnostic: `403` is "wrong plan or no key", `401` is "you sent a key and it was rejected". A `403` that is HTML rather than JSON came from the edge: check the header and the host first.
 
 In-stream errors arrive as `event: error` SSE messages. They terminate the stream.
 
@@ -261,7 +360,14 @@ In-stream errors arrive as `event: error` SSE messages. They terminate the strea
 
 ## Deprecated paths
 
-`/stream` and `/reserves/stream` are predecessors. `/stream` still works but emits a one-shot `warning` event on connect telling clients to migrate to `/sse/prices`. `/reserves/stream` was retired and now returns 404. New code must use `/sse/prices` and `/sse/reserves`.
+`/stream` and `/reserves/stream` are predecessors and both are gone. Measured 2026-09-09: `/stream` returns
+`410 {"code":410,"message":"endpoint removed","replacement":"/sse/prices"}`, so it no longer emits the old
+one-shot `warning` event and no longer serves data. `/reserves/stream` returns 404. Use `/sse/prices` and
+`/sse/reserves`.
+
+`/stream` used the event name `t_p` and compact keys `{a, c, p, t, t_p}`, and `/sse/prices` still accepts
+`method=t_p` for that shape. The current one is the event name `token_price` and `{address, chain, price, timestamp, timestamp_price,
+token_price}`. Migrating a caller means changing the URL, the `method` value, the event name AND the field reads.
 
 ---
 
@@ -275,6 +381,10 @@ In-stream errors arrive as `event: error` SSE messages. They terminate the strea
 - On the reserves feed, match `pool_reserves` and `token_reserves`, not the retired `reserve_update`. Pass a `request_id` if you fan out subscriptions and need to route events back; read it from the `request_id:` line on data events.
 - Open parallel connections if you need more than 25 subscriptions, up to the 10/IP cap.
 - Validate all asset addresses via REST `/search` before streaming. One bad address kills the entire stream.
+- On `/sse/ohlcv`, key candles by `timestamp` and overwrite. Republished candles and the inclusive resume boundary both redeliver a timestamp you already hold.
+- Prefer `Last-Event-ID` over computing a `since`. It is clamped rather than refused, so it cannot fail on a long outage.
+- Pick the widest OHLCV interval the product tolerates. `60s` carries the same trades as `1s` for one sixtieth of the spend.
+- Trust the 15 s heartbeat, not the socket. On the candle and transaction feeds a silent connection and a quiet asset look identical.
 
 ---
 
