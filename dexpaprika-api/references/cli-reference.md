@@ -1,6 +1,6 @@
 # DexPaprika CLI Reference
 
-DEX data from the terminal. 35 chains, 230+ DEXes, 33M+ tokens, 36M+ pools. Free tier, no API key needed to start.
+DEX data from the terminal. 36 chains, 230+ DEXes, 33M+ tokens, 36M+ pools. Free tier, no API key needed to start.
 
 - GitHub: https://github.com/coinpaprika/dexpaprika-cli
 - Install: `curl -sSL https://raw.githubusercontent.com/coinpaprika/dexpaprika-cli/main/install.sh | sh`
@@ -23,6 +23,7 @@ DEX data from the terminal. 35 chains, 230+ DEXes, 33M+ tokens, 36M+ pools. Free
 | `dex-pools` | List pools on a specific DEX. Broken as of CLI 0.4.2: the endpoint behind it was removed and the command returns HTTP 410. Until a newer CLI ships, call the search endpoint directly | `dexpaprika-cli dex-pools ethereum uniswap_v3` fails on 0.4.2; meanwhile `curl "https://api.dexpaprika.com/networks/ethereum/pools/search?dex_name=uniswap_v3"` |
 | `transactions` | Get recent transactions for a pool; `--from`/`--to` take `-1h` from 0.8.0 | `dexpaprika-cli transactions ethereum 0x88e6... --from -1h` |
 | `pool-ohlcv` | Get OHLCV data for a pool | `dexpaprika-cli pool-ohlcv ethereum 0x88e6... --start -24h --interval 1h` |
+| `token-ohlcv` | USD OHLCV for a token across every pool it trades in; Dev or Pro key on the api-pro host (0.9.0+) | `dexpaprika-cli token-ohlcv ethereum 0xc02a... --start -24h --interval 1h` |
 | `token` | Get detailed info about a token | `dexpaprika-cli token ethereum 0xc02a...` |
 | `token-pools` | Get pools containing a token | `dexpaprika-cli token-pools ethereum 0xc02a...` |
 | `filter-tokens` | Filter tokens by volume, liquidity, FDV, txns, 24h price change (0.4.4+), creation date (`--created-after -24h` from 0.8.0) | `dexpaprika-cli filter-tokens ethereum --volume-24h-min 100000` |
@@ -110,6 +111,8 @@ Two things to know before you trust the output.
 |------|-------------|
 | `-o, --output json` | Output as JSON (default: table) |
 | `--raw` | Raw JSON without _meta wrapper (for scripts/piping) |
+| `--api-key KEY` | API key; beats `DEXPAPRIKA_API_KEY` and the stored config |
+| `--base-url URL` | REST host; beats `DEXPAPRIKA_API_BASE_URL`, default `https://api.dexpaprika.com`. Dev, Pro and Enterprise keys use `https://api-pro.dexpaprika.com` (0.9.0+) |
 | `-h, --help` | Command help |
 | `-V, --version` | Print version |
 

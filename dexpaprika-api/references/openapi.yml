@@ -1583,6 +1583,77 @@ paths:
           $ref: "#/components/responses/QuotaExceeded"
         "429":
           $ref: "#/components/responses/RateLimited"
+  "/networks/{network}/tokens/{token_address}/ohlcv":
+    get:
+      operationId: getTokenOHLCV
+      tags:
+        - Tokens
+      summary: Get OHLCV data for a token.
+      description: |
+        Retrieves Open-High-Low-Close-Volume (OHLCV) data for a specific token.
+
+        Requires a Dev or Pro plan. Dev history is limited to the last 30 days.
+      parameters:
+        - $ref: "#/components/parameters/networkParam"
+        - $ref: "#/components/parameters/tokenAddressParam"
+        - $ref: "#/components/parameters/ohlcvStartParam"
+        - $ref: "#/components/parameters/ohlcvEndParam"
+        - $ref: "#/components/parameters/ohlcvLimitParam"
+        - $ref: "#/components/parameters/ohlcvIntervalParam"
+      responses:
+        "200":
+          description: A list of OHLCV records successfully retrieved.
+          content:
+            application/json:
+              schema:
+                type: array
+                description:
+                  An array of OHLCV records (candlesticks) matching the query
+                  criteria.
+                items:
+                  $ref: "#/components/schemas/OHLCVRecord"
+              example:
+                - time_open: "2025-03-10T00:00:00Z"
+                  time_close: "2025-03-11T00:00:00Z"
+                  open: 126.43817748776037
+                  high: 131.48201077049822
+                  low: 115.52148830221141
+                  close: 118.20275113239272
+                  volume: 262402654
+        "400":
+          description: The specified network or token address is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Invalid network or token address."
+        "404":
+          description: Network not found or token not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Token not found on this network.
+        "403":
+          description: The request is not allowed on your plan.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: this endpoint requires a Dev or Pro plan
+        "402":
+          $ref: "#/components/responses/QuotaExceeded"
+        "429":
+          $ref: "#/components/responses/RateLimited"
   "/networks/{network}/tokens/{token_address}/pools":
     get:
       operationId: getTokenPools
