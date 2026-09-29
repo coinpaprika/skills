@@ -1,12 +1,12 @@
 ---
 name: dexpaprika-api
 description: Access the DexPaprika API, CLI, and streaming service to query DEX data including networks, pools, tokens, and trading activity. Use this skill when making HTTP requests to api.dexpaprika.com or streaming.dexpaprika.com, or when using dexpaprika-cli for blockchain DEX information.
-version: 2.10.0
+version: 2.10.1
 ---
 
 # DexPaprika API Skill
 
-> **Freshness check (run once per session, before relying on this skill):** this file is `version: 2.10.0`, verified against the live API on 2026-09-29. Fetch the latest copy's header:
+> **Freshness check (run once per session, before relying on this skill):** this file is `version: 2.10.1`, verified against the live API on 2026-09-29. Fetch the latest copy's header:
 >
 > ```bash
 > curl -s -r 0-400 https://raw.githubusercontent.com/coinpaprika/skills/main/dexpaprika-api/SKILL.md
@@ -173,7 +173,9 @@ Add to `claude_desktop_config.json` or equivalent:
 }
 ```
 
-No API key needed to start. Provides 17 tools for querying networks, pools, tokens, OHLCV, transactions, and search. Verify the count with a live `tools/list`.
+No API key needed to start. Provides 18 tools for querying networks, pools, tokens, OHLCV, transactions, and search. Verify the count with a live `tools/list`.
+
+One tool, `getTokenOHLCV`, runs on the user's own Dev, Pro or Enterprise key: add `"headers": { "Authorization": "YOUR_API_KEY" }` next to `url`, the key on its own, and reconnect. Without it the tool returns `DP401_API_KEY_REQUIRED`; fall back to `getPoolOHLCV` on the token's most liquid pool.
 
 Documentation: https://docs.dexpaprika.com/ai-integration/hosted-mcp-server
 
