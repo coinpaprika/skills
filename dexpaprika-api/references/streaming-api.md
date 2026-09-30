@@ -2,14 +2,14 @@
 
 Four SSE feeds share one transport. **Access differs per feed, and only one of them is keyless.**
 
-Streaming is metered the same way as REST: each update delivered counts as one credit. Updates are swap-driven, not clock-driven and not per block: they are pushed only when a swap moves the value, so a quiet chain can go minutes without emitting anything while a fast-moving one draws down quota like polling would. Connection caps: 25 subscriptions per connection, 10 concurrent streams per IP. Current allowances are on https://dexpaprika.com/api/pricing; do not hard-code them in published copy.
+Streaming is metered the same way as REST: each update delivered counts as one credit. Updates are swap-driven, not clock-driven and not per block: they are pushed only when a swap moves the value, so a quiet chain can go minutes without emitting anything while a fast-moving one draws down quota like polling would. Connection caps: 25 subscriptions per connection; concurrent streams 10 keyless (per IP), 10 on a free key, 30 on Dev, 100 on Pro (per account). Current allowances are on https://dexpaprika.com/api/pricing; do not hard-code them in published copy.
 
 | Feed | Endpoint | Access | When it fires |
 |---|---|---|---|
 | Token prices | `/sse/prices` | keyless on the 35 preview assets only, free key for any asset | when a swap moves the price |
-| Pool reserves | `/sse/reserves` | free key | when a swap changes the pool's reserves |
-| Swap transactions | `/sse/transactions` | free key | on every swap |
-| Token OHLCV candles | `/sse/ohlcv` | **Pro only** | when a candle bucket seals, and only if it saw a swap |
+| Pool reserves | `/sse/reserves` | any key, free included | when a swap changes the pool's reserves |
+| Swap transactions | `/sse/transactions` | **Dev, Pro or Enterprise** | on every swap |
+| Token OHLCV candles | `/sse/ohlcv` | **Dev, Pro or Enterprise** | when a candle bucket seals, and only if it saw a swap |
 
 Measured 2026-09-28, keyless, all four on one pass:
 
@@ -17,12 +17,14 @@ Measured 2026-09-28, keyless, all four on one pass:
 |---|---|
 | `/sse/prices` on WETH ethereum or SOL (preview assets) | `200`, `token_price` events |
 | `/sse/prices` on USDC ethereum (not a preview asset) | `403 {"error":"preview_only","tier":"keyless","message":"keyless access is limited to preview streams ...","links":{...}}` |
-| `/sse/reserves`, `/sse/transactions` | `403 {"error":"preview_only","tier":"keyless","message":"this stream requires an API key ...","links":{...}}` |
-| `/sse/ohlcv` | `403 {"message":"this endpoint requires a Pro plan"}` |
+| `/sse/reserves` | `403 {"error":"preview_only","tier":"keyless","message":"this stream requires an API key ...","links":{...}}` |
+| `/sse/transactions`, `/sse/ohlcv` | `403 {"error":"plan_required","tier":"keyless","message":"this endpoint requires a Dev or Pro plan","required_tier":"dev","links":{...}}` |
+
+**Since 2026-09-30** `/sse/transactions` is paid-only: keyless callers and free keys get `403` with `"error":"plan_required"` and `"required_tier":"dev"` before a stream opens, and `/sse/ohlcv` refusals carry the same body. Dev, Pro and Enterprise keys use `streaming-pro.dexpaprika.com` for both.
 
 Match on the `error` field (`preview_only`) rather than the message text: the human sentence contains an em dash and gets reworded. The `links` object carries URLs for registering, the docs and pricing that you can show the user.
 
-**Hosts.** Keyless and free keys use `https://streaming.dexpaprika.com`. Pro and Enterprise use `https://streaming-pro.dexpaprika.com`. They are not interchangeable, and `/sse/ohlcv` needs the Pro host. On the `-pro` hosts a request the edge does not recognise, one with no `Authorization` header for example, gets a `403` HTML page instead of JSON.
+**Hosts.** Keyless and free keys use `https://streaming.dexpaprika.com`. Pro and Enterprise use `https://streaming-pro.dexpaprika.com`. They are not interchangeable, and `/sse/ohlcv` and `/sse/transactions` need the paid host. On the `-pro` hosts a request the edge does not recognise, one with no `Authorization` header for example, gets a `403` HTML page instead of JSON.
 
 Base URL: `https://streaming.dexpaprika.com`
 
@@ -33,7 +35,7 @@ Base URL: `https://streaming.dexpaprika.com`
 - **Subscriptions per POST connection:** 25. Larger arrays are rejected with HTTP 400 before any events flow.
   - `POST /sse/prices` rejects with `{"message":"too many assets, max 25 allowed"}`.
   - `POST /sse/reserves` rejects with `{"message":"too many subscriptions"}`.
-- **Concurrent SSE streams per IP:** 10. The 11th connection returns `429 {"message":"ip stream limit exceeded"}`.
+- **Concurrent SSE streams:** 10 keyless, counted per IP; 10 on a free key, 30 on Dev, 100 on Pro, counted per account whatever the IP. The next connection returns `429 {"error":"rate_limited","tier":...,"message":"Concurrent stream limit reached for your plan. Close an open stream before starting another.","links":{...}}`. Older copies quote `ip stream limit exceeded`; that body is no longer sent.
 - **Ping interval:** 15 seconds. A `ping` event keeps idle connections open.
 
 ---
@@ -155,7 +157,7 @@ GET /sse/transactions?method=pool&chain={network}&address={pool_address}
 GET /sse/transactions?method=token&chain={network}&address={token_address}
 ```
 
-Free key required. `method=pool` subscribes to one pool; `method=token` subscribes to every pool the token trades in, which on a major asset is three orders of magnitude more traffic and therefore more credits. POST takes up to 25 subscriptions, same shape as the other feeds.
+**Dev, Pro or Enterprise**, on `streaming-pro.dexpaprika.com`; keyless and free keys get `403` with `"error":"plan_required"`. `method=pool` subscribes to one pool; `method=token` subscribes to every pool the token trades in, which on a major asset is three orders of magnitude more traffic and therefore more credits. POST takes up to 25 subscriptions, same shape as the other feeds.
 
 Wire-format traps, both of which hide on Solana and bite on 18-decimal EVM tokens:
 
@@ -168,13 +170,13 @@ Full write-up: https://docs.dexpaprika.com/streaming/transactions-streaming
 
 ---
 
-## Token OHLCV candles (GET, Pro only)
+## Token OHLCV candles (GET, Dev, Pro or Enterprise)
 
 ```
 GET /sse/ohlcv?method=token_ohlcv&chain={network}&address={token_address}&interval=60s
 ```
 
-**Pro plan and the `streaming-pro.dexpaprika.com` host.** Keyless and free keys get `403 {"message":"this endpoint requires a Pro plan"}`. One subscription per connection; there is no POST form.
+**A paid plan (Dev, Pro or Enterprise) and the `streaming-pro.dexpaprika.com` host.** Keyless and free keys get `403` with `"error":"plan_required"` and `"required_tier":"dev"`. One subscription per connection; there is no POST form.
 
 | Parameter | Required | Description |
 |---|---|---|
@@ -346,11 +348,11 @@ SSE streaming requires HTTP/1.1. HTTP/2 (curl's default for HTTPS) may not behav
 | 400 | Bad params, unsupported chain, asset not found, or one invalid asset in a batch | `{"message": "..."}` |
 | 400 | Too many entries in POST body (26+) | `{"message":"too many assets, max 25 allowed"}` (`/sse/prices`) or `{"message":"too many subscriptions"}` (`/sse/reserves`) |
 | 403 | Keyless on a feed or asset that needs a key | `{"error":"preview_only","tier":"keyless","message":"...","links":{...}}` |
-| 403 | `/sse/ohlcv` without a Pro plan | `{"message":"this endpoint requires a Pro plan"}` |
+| 403 | `/sse/ohlcv` or `/sse/transactions` without a paid plan | `{"error":"plan_required","tier":"keyless","message":"this endpoint requires a Dev or Pro plan","required_tier":"dev","links":{...}}` |
 | 403 | `-pro` host, a request the edge does not recognise (no `Authorization` header, for example) | HTML block page, no JSON |
 | 401 | Key present and rejected | `{"message":"api key verification has failed"}` |
 | 404 | `/sse/ohlcv`, token not indexed on that chain | `{"message":"token not found: {chain}/{address}"}` |
-| 429 | IP stream limit exceeded | `{"message":"ip stream limit exceeded"}` |
+| 429 | Concurrent-stream cap for the plan reached | `{"error":"rate_limited","tier":...,"message":"Concurrent stream limit reached ...","links":{...}}` |
 
 `403` and `401` mean different things and the difference is diagnostic: `403` is "wrong plan or no key", `401` is "you sent a key and it was rejected". A `403` that is HTML rather than JSON came from the edge: check the header and the host first.
 
@@ -379,7 +381,7 @@ token_price}`. Migrating a caller means changing the URL, the `method` value, th
 - Filter on the `event:` line. Treat unknown events as no-ops so future server-side additions don't break the handler.
 - Use `BigInt` for `reserve`, `delta`, `block`, `previous_block` when you need arithmetic.
 - On the reserves feed, match `pool_reserves` and `token_reserves`, not the retired `reserve_update`. Pass a `request_id` if you fan out subscriptions and need to route events back; read it from the `request_id:` line on data events.
-- Open parallel connections if you need more than 25 subscriptions, up to the 10/IP cap.
+- Open parallel connections if you need more than 25 subscriptions, up to the plan's concurrent-stream cap (10 keyless or free, 30 Dev, 100 Pro).
 - Validate all asset addresses via REST `/search` before streaming. One bad address kills the entire stream.
 - On `/sse/ohlcv`, key candles by `timestamp` and overwrite. Republished candles and the inclusive resume boundary both redeliver a timestamp you already hold.
 - Prefer `Last-Event-ID` over computing a `since`. It is clamped rather than refused, so it cannot fail on a long outage.
