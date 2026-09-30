@@ -21,7 +21,7 @@ DEX data from the terminal. 36 chains, 230+ DEXes, 33M+ tokens, 36M+ pools. Free
 | `pool-filter` | Filter pools by volume, liquidity, txns, price change (0.4.4+), creation date (`--created-after -24h` from 0.8.0) | `dexpaprika-cli pool-filter ethereum --volume-24h-min 100000` |
 | `pool` | Get detailed info about a specific pool | `dexpaprika-cli pool ethereum 0x88e6...` |
 | `dex-pools` | List pools on a specific DEX. Broken as of CLI 0.4.2: the endpoint behind it was removed and the command returns HTTP 410. Until a newer CLI ships, call the search endpoint directly | `dexpaprika-cli dex-pools ethereum uniswap_v3` fails on 0.4.2; meanwhile `curl "https://api.dexpaprika.com/networks/ethereum/pools/search?dex_name=uniswap_v3"` |
-| `transactions` | Get recent transactions for a pool; `--from`/`--to` take `-1h` from 0.8.0. Dev or Pro key from 2026-10-01, with `--base-url https://api-pro.dexpaprika.com` or `DEXPAPRIKA_API_BASE_URL` (0.9.0+) | `dexpaprika-cli transactions ethereum 0x88e6... --from -1h` |
+| `transactions` | Get recent transactions for a pool; `--from`/`--to` take `-1h` from 0.8.0. Dev or Pro key, with `--base-url https://api-pro.dexpaprika.com` or `DEXPAPRIKA_API_BASE_URL` (0.9.0+) | `dexpaprika-cli transactions ethereum 0x88e6... --from -1h` |
 | `pool-ohlcv` | Get OHLCV data for a pool | `dexpaprika-cli pool-ohlcv ethereum 0x88e6... --start -24h --interval 1h` |
 | `token-ohlcv` | USD OHLCV for a token across every pool it trades in; Dev or Pro key on the api-pro host (0.9.0+) | `dexpaprika-cli token-ohlcv ethereum 0xc02a... --start -24h --interval 1h` |
 | `token` | Get detailed info about a token | `dexpaprika-cli token ethereum 0xc02a...` |

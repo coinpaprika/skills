@@ -8,7 +8,7 @@ Streaming is metered the same way as REST: each update delivered counts as one c
 |---|---|---|---|
 | Token prices | `/sse/prices` | keyless on the 35 preview assets only, free key for any asset | when a swap moves the price |
 | Pool reserves | `/sse/reserves` | any key, free included | when a swap changes the pool's reserves |
-| Swap transactions | `/sse/transactions` | **Dev, Pro or Enterprise from 2026-10-01** (free key until then) | on every swap |
+| Swap transactions | `/sse/transactions` | **Dev, Pro or Enterprise** | on every swap |
 | Token OHLCV candles | `/sse/ohlcv` | **Dev, Pro or Enterprise** | when a candle bucket seals, and only if it saw a swap |
 
 Measured 2026-09-28, keyless, all four on one pass:
@@ -17,14 +17,14 @@ Measured 2026-09-28, keyless, all four on one pass:
 |---|---|
 | `/sse/prices` on WETH ethereum or SOL (preview assets) | `200`, `token_price` events |
 | `/sse/prices` on USDC ethereum (not a preview asset) | `403 {"error":"preview_only","tier":"keyless","message":"keyless access is limited to preview streams ...","links":{...}}` |
-| `/sse/reserves`, `/sse/transactions` | `403 {"error":"preview_only","tier":"keyless","message":"this stream requires an API key ...","links":{...}}` |
-| `/sse/ohlcv` | `403 {"message":"this endpoint requires a Pro plan"}` |
+| `/sse/reserves` | `403 {"error":"preview_only","tier":"keyless","message":"this stream requires an API key ...","links":{...}}` |
+| `/sse/transactions`, `/sse/ohlcv` | `403 {"error":"plan_required","tier":"keyless","message":"this endpoint requires a Dev or Pro plan","required_tier":"dev","links":{...}}` |
 
-**From 2026-10-01** `/sse/transactions` is paid-only: keyless callers and free keys get `403 {"message":"this endpoint requires a Dev or Pro plan"}` before a stream opens, and `/sse/ohlcv` refusals carry the same message. Dev, Pro and Enterprise keys use `streaming-pro.dexpaprika.com` for both.
+**Since 2026-09-30** `/sse/transactions` is paid-only: keyless callers and free keys get `403` with `"error":"plan_required"` and `"required_tier":"dev"` before a stream opens, and `/sse/ohlcv` refusals carry the same body. Dev, Pro and Enterprise keys use `streaming-pro.dexpaprika.com` for both.
 
 Match on the `error` field (`preview_only`) rather than the message text: the human sentence contains an em dash and gets reworded. The `links` object carries URLs for registering, the docs and pricing that you can show the user.
 
-**Hosts.** Keyless and free keys use `https://streaming.dexpaprika.com`. Pro and Enterprise use `https://streaming-pro.dexpaprika.com`. They are not interchangeable, and `/sse/ohlcv` and (from 2026-10-01) `/sse/transactions` need the paid host. On the `-pro` hosts a request the edge does not recognise, one with no `Authorization` header for example, gets a `403` HTML page instead of JSON.
+**Hosts.** Keyless and free keys use `https://streaming.dexpaprika.com`. Pro and Enterprise use `https://streaming-pro.dexpaprika.com`. They are not interchangeable, and `/sse/ohlcv` and `/sse/transactions` need the paid host. On the `-pro` hosts a request the edge does not recognise, one with no `Authorization` header for example, gets a `403` HTML page instead of JSON.
 
 Base URL: `https://streaming.dexpaprika.com`
 
@@ -157,7 +157,7 @@ GET /sse/transactions?method=pool&chain={network}&address={pool_address}
 GET /sse/transactions?method=token&chain={network}&address={token_address}
 ```
 
-**Dev, Pro or Enterprise from 2026-10-01**, on `streaming-pro.dexpaprika.com`; keyless and free keys then get `403 {"message":"this endpoint requires a Dev or Pro plan"}`. Until then a free key opens it. `method=pool` subscribes to one pool; `method=token` subscribes to every pool the token trades in, which on a major asset is three orders of magnitude more traffic and therefore more credits. POST takes up to 25 subscriptions, same shape as the other feeds.
+**Dev, Pro or Enterprise**, on `streaming-pro.dexpaprika.com`; keyless and free keys get `403` with `"error":"plan_required"`. `method=pool` subscribes to one pool; `method=token` subscribes to every pool the token trades in, which on a major asset is three orders of magnitude more traffic and therefore more credits. POST takes up to 25 subscriptions, same shape as the other feeds.
 
 Wire-format traps, both of which hide on Solana and bite on 18-decimal EVM tokens:
 
@@ -176,7 +176,7 @@ Full write-up: https://docs.dexpaprika.com/streaming/transactions-streaming
 GET /sse/ohlcv?method=token_ohlcv&chain={network}&address={token_address}&interval=60s
 ```
 
-**A paid plan (Dev, Pro or Enterprise) and the `streaming-pro.dexpaprika.com` host.** Keyless and free keys get `403`: `{"message":"this endpoint requires a Pro plan"}` before 2026-10-01, `requires a Dev or Pro plan` after. A Dev key passes either way. One subscription per connection; there is no POST form.
+**A paid plan (Dev, Pro or Enterprise) and the `streaming-pro.dexpaprika.com` host.** Keyless and free keys get `403` with `"error":"plan_required"` and `"required_tier":"dev"`. One subscription per connection; there is no POST form.
 
 | Parameter | Required | Description |
 |---|---|---|
@@ -348,7 +348,7 @@ SSE streaming requires HTTP/1.1. HTTP/2 (curl's default for HTTPS) may not behav
 | 400 | Bad params, unsupported chain, asset not found, or one invalid asset in a batch | `{"message": "..."}` |
 | 400 | Too many entries in POST body (26+) | `{"message":"too many assets, max 25 allowed"}` (`/sse/prices`) or `{"message":"too many subscriptions"}` (`/sse/reserves`) |
 | 403 | Keyless on a feed or asset that needs a key | `{"error":"preview_only","tier":"keyless","message":"...","links":{...}}` |
-| 403 | `/sse/ohlcv` without a paid plan; `/sse/transactions` too from 2026-10-01 | `{"message":"this endpoint requires a Pro plan"}`, `... a Dev or Pro plan` from 2026-10-01 |
+| 403 | `/sse/ohlcv` or `/sse/transactions` without a paid plan | `{"error":"plan_required","tier":"keyless","message":"this endpoint requires a Dev or Pro plan","required_tier":"dev","links":{...}}` |
 | 403 | `-pro` host, a request the edge does not recognise (no `Authorization` header, for example) | HTML block page, no JSON |
 | 401 | Key present and rejected | `{"message":"api key verification has failed"}` |
 | 404 | `/sse/ohlcv`, token not indexed on that chain | `{"message":"token not found: {chain}/{address}"}` |
