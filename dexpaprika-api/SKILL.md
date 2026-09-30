@@ -1,12 +1,12 @@
 ---
 name: dexpaprika-api
 description: Access the DexPaprika API, CLI, and streaming service to query DEX data including networks, pools, tokens, and trading activity. Use this skill when making HTTP requests to api.dexpaprika.com or streaming.dexpaprika.com, or when using dexpaprika-cli for blockchain DEX information.
-version: 2.10.1
+version: 2.11.0
 ---
 
 # DexPaprika API Skill
 
-> **Freshness check (run once per session, before relying on this skill):** this file is `version: 2.10.1`, verified against the live API on 2026-09-29. Fetch the latest copy's header:
+> **Freshness check (run once per session, before relying on this skill):** this file is `version: 2.11.0`, verified against the live API on 2026-09-30. Fetch the latest copy's header:
 >
 > ```bash
 > curl -s -r 0-400 https://raw.githubusercontent.com/coinpaprika/skills/main/dexpaprika-api/SKILL.md
@@ -67,9 +67,11 @@ dexpaprika-cli filter-tokens solana --fdv-min 1000000 --liquidity-usd-min 50000 
 # Filter pools by volume, liquidity, txns, creation date
 dexpaprika-cli pool-filter ethereum --volume-24h-min 500000 --liquidity-usd-min 50000 --output json --raw
 
-# Relative times (CLI 0.8.0+): pools created in the last day, swaps in the last hour
+# Relative times (CLI 0.8.0+): pools created in the last day
 dexpaprika-cli pool-filter solana --created-after -24h --sort-by created_at --output json --raw
-dexpaprika-cli transactions ethereum 0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640 --from -1h --output json --raw
+
+# Swaps in the last hour. Dev or Pro key from 2026-10-01, on the paid host (CLI 0.9.0+)
+DEXPAPRIKA_API_BASE_URL=https://api-pro.dexpaprika.com dexpaprika-cli transactions ethereum 0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640 --from -1h --output json --raw
 
 # Batch token prices
 dexpaprika-cli prices ethereum --tokens 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2,0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48 --output json --raw
@@ -107,10 +109,11 @@ curl -s -H "Authorization: api_YOUR_KEY" "https://api.dexpaprika.com/networks"
 ```
 
 Free keys stay on `api.dexpaprika.com`; Dev, Pro and Enterprise use
-`api-pro.dexpaprika.com`, and a free key sent there returns `403`. `GET /usage` is the
-only endpoint that reports which plan a request was billed to: on the data endpoints an
-unreadable key is ignored rather than rejected, so the call returns `200` with real data
-while quietly serving the keyless tier.
+`api-pro.dexpaprika.com`, and a free key sent there returns `403`. Read the `x-api-plan`
+response header (`keyless`, `free`, `dev`, `pro`) to see which plan a request was billed
+to; `GET /usage` reports it too. Check it, because on `api.dexpaprika.com` an unreadable
+key is ignored rather than rejected: the call returns `200` with real data while quietly
+serving the keyless tier, and only the header says so.
 
 #### Endpoint table
 
@@ -124,7 +127,7 @@ while quietly serving the keyless tier.
 | Pool details | `GET /networks/{network}/pools/{pool_address}` |
 | Pool OHLCV (charts) | `GET /networks/{network}/pools/{pool_address}/ohlcv` |
 | Token OHLCV (USD, across every pool; Dev or Pro) | `GET /networks/{network}/tokens/{token_address}/ohlcv` on `api-pro.dexpaprika.com` |
-| Pool transactions | `GET /networks/{network}/pools/{pool_address}/transactions` |
+| Pool transactions (Dev or Pro from 2026-10-01) | `GET /networks/{network}/pools/{pool_address}/transactions` on `api-pro.dexpaprika.com`; free tier: transaction counts from pool details |
 | Token price + data | `GET /networks/{network}/tokens/{token_address}` |
 | Pools containing token | `GET /networks/{network}/pools/search?token_address={token_address}` |
 | Filter tokens | `GET /networks/{network}/tokens/search` (volume_usd_24h, liquidity_usd, fdv_usd, txns_24h, creation date filters) |
@@ -175,7 +178,7 @@ Add to `claude_desktop_config.json` or equivalent:
 
 No API key needed to start. Provides 18 tools for querying networks, pools, tokens, OHLCV, transactions, and search. Verify the count with a live `tools/list`.
 
-One tool, `getTokenOHLCV`, runs on the user's own Dev, Pro or Enterprise key: add `"headers": { "Authorization": "YOUR_API_KEY" }` next to `url`, the key on its own, and reconnect. Without it the tool returns `DP401_API_KEY_REQUIRED`; fall back to `getPoolOHLCV` on the token's most liquid pool.
+Tools that need a paid plan run on the user's own Dev, Pro or Enterprise key: add `"headers": { "Authorization": "YOUR_API_KEY" }` next to `url`, the key on its own, and reconnect. Today that is `getTokenOHLCV`; `getPoolTransactions` joins it on 2026-10-01, when the transactions endpoint becomes paid-only. Without a key such a tool returns `DP401_API_KEY_REQUIRED` and calls nothing. Fall back to `getPoolOHLCV` on the token's most liquid pool for candles, and to `getPoolDetails` for a pool's transaction counts. Every other hosted tool runs on the server's shared capacity, not on the user's plan, so a key does not raise its limits; on `DP429_RATE_LIMITED` wait `retry_after_seconds` and retry.
 
 Documentation: https://docs.dexpaprika.com/ai-integration/hosted-mcp-server
 
@@ -185,13 +188,13 @@ Base URL: `https://streaming.dexpaprika.com`
 
 Four SSE feeds share one transport, and access differs per feed:
 - `/sse/prices`: token price updates, pushed when a swap moves the price. Updates are swap-driven, not clock-driven or per block: a quiet chain can go minutes without emitting anything. Keyless on the showcase tokens, a free key for any token.
-- `/sse/reserves`: pool reserve updates with USD-denominated deltas, emitted when a swap changes the pool's reserves, not on every block. Free key required.
-- `/sse/transactions`: individual swaps, for one pool (`method=pool`) or every pool a token trades in (`method=token`). Free key required.
-- `/sse/ohlcv`: sealed token candles at `1s`, `5s` or `60s`. Pro plan, on `https://streaming-pro.dexpaprika.com`.
+- `/sse/reserves`: pool reserve updates with USD-denominated deltas, emitted when a swap changes the pool's reserves, not on every block. Any key, a free one included.
+- `/sse/transactions`: individual swaps, for one pool (`method=pool`) or every pool a token trades in (`method=token`). **Dev, Pro or Enterprise from 2026-10-01**, on `https://streaming-pro.dexpaprika.com` (until then a free key opens it).
+- `/sse/ohlcv`: sealed token candles at `1s`, `5s` or `60s`. Dev, Pro or Enterprise, on `https://streaming-pro.dexpaprika.com`.
 
-Keyless requests to a feed or token that needs a key get `403` with `"error":"preview_only"`.
+Keyless requests to a feed or token that needs a key get `403` with `"error":"preview_only"`. A paid-only feed refuses keyless and free keys with `403` `{"message":"this endpoint requires a Dev or Pro plan"}` (`/sse/ohlcv` said `requires a Pro plan` before 2026-10-01; match on the status, not the text).
 
-**Limits:** 25 subscriptions per POST connection. 10 concurrent SSE streams per IP. A `ping` event lands every 15 s. Keyless streaming covers 35 showcase tokens, a flagship asset on most chains; a free API key opens streaming for any token.
+**Limits:** 25 subscriptions per POST connection. Concurrent SSE streams: 10 keyless (counted per IP), 10 on a free key, 30 on Dev, 100 on Pro (counted per account); the next one gets `429` with `"error":"rate_limited"` and `Concurrent stream limit reached`. A `ping` event lands every 15 s. Keyless streaming covers 35 showcase tokens, a flagship asset on most chains; a free API key opens prices and reserves for any token.
 
 Single token price (GET):
 ```bash
@@ -369,7 +372,8 @@ All timestamps support Unix, RFC3339, or `yyyy-mm-dd` format, and an offset back
 ## Rate limits and errors
 
 - Rate limits and quotas: 15 requests/minute keyless per IP on 10,000 credits, 30/minute with a free key (register at https://console.dexpaprika.com) on 100,000. Both allowances roll over the last 30 days rather than resetting on the 1st, so a burst today constrains the next 30 days, and a 402 on a free tier carries no `resets_at`. Data is delayed up to 60 seconds on both. Paid plans are real-time, on api-pro.dexpaprika.com with a key: Dev $30/month for 500,000 credits at 120/minute, Pro $99/month for 5,000,000 at 500/minute, each per Stripe billing period with $20 per additional 1M. One request = one credit; a batch endpoint costs one credit per item, and each delivered streaming update costs one credit. Current numbers: https://docs.dexpaprika.com/knowledge-base/rate-limits. Plans and checkout: https://dexpaprika.com/api/pricing
-- HTTP errors: `200` OK | `400` bad params | `404` not found | `429` rate limited | `500` server error
-- **On 429 rate limit:** Wait a few seconds/minutes, then retry. Blocks are temporary. If persistent, contact support@coinpaprika.com.
+- HTTP errors: `200` OK | `400` bad params | `401` key present and rejected | `402` credit allowance spent (retrying does not help) | `403` wrong host for the key, or a paid-only endpoint (token OHLCV; pool transactions from 2026-10-01) called keyless or with a free key, body `{"message":"this endpoint requires a Dev or Pro plan"}` | `404` not found | `410` endpoint removed, body names the `replacement` | `429` rate limited | `500` server error
+- On `api-pro` a request the edge does not recognise, one with no `Authorization` header for example, gets a `403` HTML page instead of JSON. Fix the header; the next request recovers.
+- **On 429 rate limit:** wait the `Retry-After` seconds, then retry. Blocks are temporary. If persistent, contact support@coinpaprika.com.
 - Check API health: `dexpaprika-cli status` or `GET https://api.dexpaprika.com/stats`
 - Full docs: https://docs.dexpaprika.com
