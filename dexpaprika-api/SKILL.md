@@ -1,12 +1,12 @@
 ---
 name: dexpaprika-api
 description: Access the DexPaprika API, CLI, and streaming service to query DEX data including networks, pools, tokens, and trading activity. Use this skill when making HTTP requests to api.dexpaprika.com or streaming.dexpaprika.com, or when using dexpaprika-cli for blockchain DEX information.
-version: 2.11.0
+version: 2.12.0
 ---
 
 # DexPaprika API Skill
 
-> **Freshness check (run once per session, before relying on this skill):** this file is `version: 2.11.0`, verified against the live API on 2026-09-30. Fetch the latest copy's header:
+> **Freshness check (run once per session, before relying on this skill):** this file is `version: 2.12.0`, verified against the live API on 2026-10-13. Fetch the latest copy's header:
 >
 > ```bash
 > curl -s -r 0-400 https://raw.githubusercontent.com/coinpaprika/skills/main/dexpaprika-api/SKILL.md
@@ -127,6 +127,8 @@ serving the keyless tier, and only the header says so.
 | Pool details | `GET /networks/{network}/pools/{pool_address}` |
 | Pool OHLCV (charts) | `GET /networks/{network}/pools/{pool_address}/ohlcv` |
 | Token OHLCV (USD, across every pool; Dev or Pro) | `GET /networks/{network}/tokens/{token_address}/ohlcv` on `api-pro.dexpaprika.com` |
+| Pool RSI, EMA, MACD, Bollinger Bands, VWAP | `GET /networks/{network}/pools/{pool_address}/indicators?indicator=rsi` (computed by the API, same plan limits as pool OHLCV) |
+| Token indicators (USD, across every pool; Dev or Pro) | `GET /networks/{network}/tokens/{token_address}/indicators?indicator=rsi` on `api-pro.dexpaprika.com` |
 | Pool transactions (Dev or Pro) | `GET /networks/{network}/pools/{pool_address}/transactions` on `api-pro.dexpaprika.com`; free tier: transaction counts from pool details |
 | Token price + data | `GET /networks/{network}/tokens/{token_address}` |
 | Pools containing token | `GET /networks/{network}/pools/search?token_address={token_address}` |
@@ -176,9 +178,9 @@ Add to `claude_desktop_config.json` or equivalent:
 }
 ```
 
-No API key needed to start. Provides 18 tools for querying networks, pools, tokens, OHLCV, transactions, and search. Verify the count with a live `tools/list`.
+No API key needed to start. Provides 20 tools for querying networks, pools, tokens, OHLCV, technical indicators, transactions, and search. Verify the count with a live `tools/list`.
 
-Tools that need a paid plan run on the user's own Dev, Pro or Enterprise key: add `"headers": { "Authorization": "YOUR_API_KEY" }` next to `url`, the key on its own, and reconnect. That is `getTokenOHLCV` and `getPoolTransactions`. Without a key such a tool returns `DP401_API_KEY_REQUIRED` and calls nothing. Fall back to `getPoolOHLCV` on the token's most liquid pool for candles, and to `getPoolDetails` for a pool's transaction counts. Every other hosted tool runs on the server's shared capacity, not on the user's plan, so a key does not raise its limits; on `DP429_RATE_LIMITED` wait `retry_after_seconds` and retry.
+Tools that need a paid plan run on the user's own Dev, Pro or Enterprise key: add `"headers": { "Authorization": "YOUR_API_KEY" }` next to `url`, the key on its own, and reconnect. That is `getTokenOHLCV`, `getTokenIndicator` and `getPoolTransactions`. Without a key such a tool returns `DP401_API_KEY_REQUIRED` and calls nothing. Fall back to `getPoolOHLCV` or `getPoolIndicator` on the token's most liquid pool for candles or indicators, and to `getPoolDetails` for a pool's transaction counts. Every other hosted tool runs on the server's shared capacity, not on the user's plan, so a key does not raise its limits; on `DP429_RATE_LIMITED` wait `retry_after_seconds` and retry.
 
 Documentation: https://docs.dexpaprika.com/ai-integration/hosted-mcp-server
 
@@ -295,6 +297,22 @@ curl -s -H "Authorization: $DEXPAPRIKA_API_KEY" "https://api-pro.dexpaprika.com/
 - A candle exists only for an interval in which the token traded, so short intervals on quiet tokens have gaps. The latest candle can still be open.
 - Reference: https://docs.dexpaprika.com/api-reference/tokens/get-ohlcv-data-for-a-token
 
+### Get a technical indicator for a pool
+
+RSI, EMA, MACD, Bollinger Bands or VWAP, computed by the API from the pool's completed candles, so there is no need to fetch OHLCV and compute them yourself.
+
+```bash
+curl -s "https://api.dexpaprika.com/networks/ethereum/pools/0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640/indicators?indicator=rsi&interval=1h&start=-24h" | jq
+```
+
+- `indicator` (required): `rsi`, `ema`, `macd`, `bbands` or `vwap`. Also `interval` (`1m` to `24h`, or `1d`), `start`, `end`, `limit` (default 100, max 1000) and `cursor`.
+- Send only the parameters of the chosen indicator: `period` for rsi (14), ema (20), bbands (20) and vwap (14); `fast_period` (12), `slow_period` (26) and `signal_period` (9) for macd; `std_dev` (2) for bbands. Any other parameter answers `400` `invalid_param`.
+- Response: `parameters` (what was used) and `data`, oldest first, one point per completed candle. rsi, ema and vwap give `value`; macd gives `macd`, `signal` and `histogram`; bbands gives `upper`, `middle` and `lower`.
+- Same plan limits as pool OHLCV (below). Always pass `interval`; without a key it defaults to `1h`, otherwise to `24h`.
+- RSI, EMA and MACD are smoothed: start ten or more periods before the first value you rely on. Without a key the 24-hour window is too short for RSI(14) to settle; a free key opens 7 days.
+- Token indicators: the same on `/networks/{network}/tokens/{token_address}/indicators`, from the token's USD candles across every pool. Dev, Pro or Enterprise on `api-pro.dexpaprika.com`; keyless and free keys get `403` `plan_required`, so use the pool endpoint on the token's busiest pool instead.
+- Guide: https://docs.dexpaprika.com/tutorials/technical-indicators. Reference: https://docs.dexpaprika.com/api-reference/pools/get-a-technical-indicator-for-a-pool
+
 ### Batch prices for multiple tokens
 
 ```bash
@@ -367,12 +385,12 @@ Two pagination models coexist:
 
 All timestamps support Unix, RFC3339, or `yyyy-mm-dd` format, and an offset back from now (`-24h`, `-7d`, `-90m`; units s, m, h, d). That covers OHLCV `start` and `end`, pool transactions `from` and `to`, and `created_after` and `created_before` on the four `/search` endpoints, so `from=-1h` is the last hour of swaps and `created_after=-24h` what was created in the last day. Transactions `from` is inclusive and `to` exclusive, and nothing older than 7 days comes back; the search bounds include both ends and the response echoes the resolved unix value in `query`. OHLCV returns up to 1000 candles per request.
 
-**OHLCV depends on the plan.** No key: `1h` and longer over the last 24 hours. Free key: `10m` and longer over 7 days. Dev: every interval over 30 days. Pro and Enterprise: no plan limit on history. Token OHLCV needs Dev or above and follows the same Dev and Pro rules. Outside those limits the API answers `403` with a message naming the plan that allows it. `start=-24h` works on every plan. Current limits: https://docs.dexpaprika.com/knowledge-base/rate-limits#ohlcv-limits-by-plan
+**OHLCV depends on the plan.** No key: `1h` and longer over the last 24 hours. Free key: `10m` and longer over 7 days. Dev: every interval over 30 days. Pro and Enterprise: no plan limit on history. Pool indicators follow the same limits. Token OHLCV and token indicators need Dev or above and follow the same Dev and Pro rules. Outside those limits the API answers `403` with a message naming the plan that allows it. `start=-24h` works on every plan. Current limits: https://docs.dexpaprika.com/knowledge-base/rate-limits#ohlcv-limits-by-plan
 
 ## Rate limits and errors
 
 - Rate limits and quotas: 15 requests/minute keyless per IP on 10,000 credits, 30/minute with a free key (register at https://console.dexpaprika.com) on 100,000. Both allowances roll over the last 30 days rather than resetting on the 1st, so a burst today constrains the next 30 days, and a 402 on a free tier carries no `resets_at`. Data is delayed up to 60 seconds on both. Paid plans are real-time, on api-pro.dexpaprika.com with a key: Dev $30/month for 500,000 credits at 120/minute, Pro $99/month for 5,000,000 at 500/minute, each per Stripe billing period with $20 per additional 1M. One request = one credit; a batch endpoint costs one credit per item, and each delivered streaming update costs one credit. Current numbers: https://docs.dexpaprika.com/knowledge-base/rate-limits. Plans and checkout: https://dexpaprika.com/api/pricing
-- HTTP errors: `200` OK | `400` bad params | `401` key present and rejected | `402` credit allowance spent (retrying does not help) | `403` wrong host for the key, (`"error":"wrong_host"`), or a paid-only endpoint (token OHLCV, pool transactions) called keyless or with a free key (`"error":"plan_required"`, `required_tier` names the plan) | `404` not found | `410` endpoint removed, body names the `replacement` | `429` rate limited | `500` server error
+- HTTP errors: `200` OK | `400` bad params | `401` key present and rejected | `402` credit allowance spent (retrying does not help) | `403` wrong host for the key, (`"error":"wrong_host"`), or a paid-only endpoint (token OHLCV, token indicators, pool transactions) called keyless or with a free key (`"error":"plan_required"`, `required_tier` names the plan) | `404` not found | `410` endpoint removed, body names the `replacement` | `429` rate limited | `500` server error
 - On `api-pro` a request the edge does not recognise, one with no `Authorization` header for example, gets a `403` HTML page instead of JSON. Fix the header; the next request recovers.
 - **On 429 rate limit:** wait the `Retry-After` seconds, then retry. Blocks are temporary. If persistent, contact support@coinpaprika.com.
 - Check API health: `dexpaprika-cli status` or `GET https://api.dexpaprika.com/stats`
