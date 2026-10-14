@@ -1,12 +1,12 @@
 ---
 name: dexpaprika-api
 description: Access the DexPaprika API, CLI, and streaming service to query DEX data including networks, pools, tokens, and trading activity. Use this skill when making HTTP requests to api.dexpaprika.com or streaming.dexpaprika.com, or when using dexpaprika-cli for blockchain DEX information.
-version: 2.12.0
+version: 2.13.0
 ---
 
 # DexPaprika API Skill
 
-> **Freshness check (run once per session, before relying on this skill):** this file is `version: 2.12.0`, verified against the live API on 2026-10-13. Fetch the latest copy's header:
+> **Freshness check (run once per session, before relying on this skill):** this file is `version: 2.13.0`, verified against the live API on 2026-10-14. Fetch the latest copy's header:
 >
 > ```bash
 > curl -s -r 0-400 https://raw.githubusercontent.com/coinpaprika/skills/main/dexpaprika-api/SKILL.md
@@ -379,7 +379,7 @@ Full list: `GET /networks` or `dexpaprika-cli networks`.
 Two pagination models coexist:
 
 - **Page-based** (`/networks/{network}/dexes`): `?page=1&limit=10&order_by=volume_usd&sort=desc`. Pages are 1-indexed (first page is `page=1`). Max 1000 pages. `order_by` values on this endpoint: `volume_usd`, `price_usd`, `transactions`, `last_price_change_usd_24h`, `created_at`.
-- **Cursor-based** (the four `/search` endpoints): pass `limit` plus the `cursor` value from the previous response. Rows arrive under `results`, alongside `has_next_page` and `next_cursor`. `order_by` values are canonical: `volume_usd_24h`, `volume_usd_7d`, `volume_usd_30d`, `liquidity_usd`, `txns_24h`, `created_at`, `price_change_percentage_24h`, plus `price_usd`, `price_change_percentage_6h`, `price_change_percentage_1h` and `price_change_percentage_5m` (pools only) and `fdv_usd` (tokens only). The legacy names (`volume_usd`, `transactions`, `last_price_change_usd_24h`) return HTTP 400 on `/search` endpoints.
+- **Cursor-based** (the four `/search` endpoints): pass `limit` plus the `cursor` value from the previous response. Rows arrive under `results`, alongside `has_next_page` and `next_cursor`. `limit` defaults to 50, maximum 100. **Paging needs an API key:** without one you get the first page, and a keyless request that sends `cursor` gets `403` with `"error": "plan_required"`, `"required_tier": "free"`, `"param": "cursor"` (during the warning period it still answers `200` with an `x-api-warning` header). Any key, a free one from https://console.dexpaprika.com included, pages without limit. Treat that `403` as a missing key, never retry it. `order_by` values are canonical: `volume_usd_24h`, `volume_usd_7d`, `volume_usd_30d`, `liquidity_usd`, `txns_24h`, `created_at`, `price_change_percentage_24h`, plus `price_usd`, `price_change_percentage_6h`, `price_change_percentage_1h` and `price_change_percentage_5m` (pools only) and `fdv_usd` (tokens only). The legacy names (`volume_usd`, `transactions`, `last_price_change_usd_24h`) return HTTP 400 on `/search` endpoints.
 
 ## Timestamps
 
