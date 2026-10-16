@@ -54,7 +54,7 @@ DEX data from the terminal. 36 chains, 230+ DEXes, 33M+ tokens, 36M+ pools. Free
 | `liquidity` | `liquidity_usd` |
 | `fdv` | `fdv_usd` |
 
-Canonical values pass through unchanged. Unknown values fall back to `volume_usd_24h`. Note: token search rejects `price_usd` ordering, so `top-tokens --order-by price_usd` falls back to volume. The search endpoints are cursor-paginated, so `--page` has no effect on these commands; use `--limit` and the CLI's next-cursor hint.
+Canonical values pass through unchanged. Unknown values fall back to `volume_usd_24h`. Note: token search rejects `price_usd` ordering, so `top-tokens --order-by price_usd` falls back to volume. The search endpoints are cursor-paginated, so `--page` has no effect on these commands; use `--limit` and the CLI's next-cursor hint. Paging with `--cursor` needs an API key (a free key is enough): `dexpaprika-cli config set-key <key>`, `DEXPAPRIKA_API_KEY` or `--api-key`.
 
 ```bash
 # Sort flags: pools/top-tokens use --order-by/--sort, pool-filter/filter-tokens use --sort-by/--sort-dir
