@@ -3,7 +3,13 @@
 DEX data from the terminal. 36 chains, 230+ DEXes, 33M+ tokens, 36M+ pools. Free tier, no API key needed to start.
 
 - GitHub: https://github.com/coinpaprika/dexpaprika-cli
-- Install: `curl -sSL https://raw.githubusercontent.com/coinpaprika/dexpaprika-cli/main/install.sh | sh`
+- Install:
+  ```bash
+  curl -sSfLO https://raw.githubusercontent.com/coinpaprika/dexpaprika-cli/v0.12.0/install.sh
+  echo "1cd2759d86d915e3e63087d4199888b44efbe72dbef7b640c2eb89c687503125  install.sh" > install.sh.sha256
+  { sha256sum -c install.sh.sha256 || shasum -a 256 -c install.sh.sha256; } && sh install.sh
+  ```
+  The script comes from a release tag and runs only if its SHA-256 matches. It installs the latest release and checks the binary against that release's `SHA256SUMS`. With Rust installed, `cargo install dexpaprika-cli --locked` works too.
 - Quick start: `dexpaprika-cli onboard`
 
 **For agent use:** Always append `--output json --raw` for machine-readable JSON output.

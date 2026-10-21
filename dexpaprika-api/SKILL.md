@@ -1,12 +1,12 @@
 ---
 name: dexpaprika-api
 description: Access the DexPaprika API, CLI, and streaming service to query DEX data including networks, pools, tokens, and trading activity. Use this skill when making HTTP requests to api.dexpaprika.com or streaming.dexpaprika.com, or when using dexpaprika-cli for blockchain DEX information.
-version: 2.13.0
+version: 2.13.1
 ---
 
 # DexPaprika API Skill
 
-> **Freshness check (run once per session, before relying on this skill):** this file is `version: 2.13.0`, verified against the live API on 2026-10-14. Fetch the latest copy's header:
+> **Freshness check (run once per session, before relying on this skill):** this file is `version: 2.13.1`, verified against the live API on 2026-10-14. Fetch the latest copy's header:
 >
 > ```bash
 > curl -s -r 0-400 https://raw.githubusercontent.com/coinpaprika/skills/main/dexpaprika-api/SKILL.md
@@ -33,8 +33,12 @@ DEX data API covering 36 blockchains, 230+ DEXes, 36M+ liquidity pools, and 33M+
 Install and query in seconds. Best for agents that can run shell commands.
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/coinpaprika/dexpaprika-cli/main/install.sh | sh
+curl -sSfLO https://raw.githubusercontent.com/coinpaprika/dexpaprika-cli/v0.12.0/install.sh
+echo "1cd2759d86d915e3e63087d4199888b44efbe72dbef7b640c2eb89c687503125  install.sh" > install.sh.sha256
+{ sha256sum -c install.sh.sha256 || shasum -a 256 -c install.sh.sha256; } && sh install.sh
 ```
+
+The script comes from a release tag and runs only if its SHA-256 matches. It installs the latest release and checks the binary against that release's `SHA256SUMS`. With Rust installed, `cargo install dexpaprika-cli --locked` works too.
 
 Always use `--output json --raw` for machine-readable output. Run `dexpaprika-cli onboard` for an interactive quick-start guide.
 

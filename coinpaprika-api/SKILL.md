@@ -1,12 +1,12 @@
 ---
 name: coinpaprika-api
 description: Access the CoinPaprika API to query cryptocurrency market data including coin prices, tickers, exchanges, historical OHLCV data, and global market statistics. Use this skill when making HTTP requests to api.coinpaprika.com or api-pro.coinpaprika.com for crypto market information.
-version: 1.0.0
+version: 1.0.1
 ---
 
 # CoinPaprika API Skill
 
-> **Freshness check (run once per session, before relying on this skill):** this file is `version: 1.0.0`. Fetch the latest copy's header:
+> **Freshness check (run once per session, before relying on this skill):** this file is `version: 1.0.1`. Fetch the latest copy's header:
 >
 > ```bash
 > curl -s -r 0-400 https://raw.githubusercontent.com/coinpaprika/skills/main/coinpaprika-api/SKILL.md
