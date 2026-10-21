@@ -3,7 +3,13 @@
 Crypto market data from the terminal. 12,000+ cryptocurrencies, real-time prices, OHLCV, exchanges. Free tier included.
 
 - GitHub: https://github.com/coinpaprika/coinpaprika-cli
-- Install: `curl -sSL https://raw.githubusercontent.com/coinpaprika/coinpaprika-cli/main/install.sh | sh`
+- Install:
+  ```bash
+  curl -sSfLO https://raw.githubusercontent.com/coinpaprika/coinpaprika-cli/v0.2.0/install.sh
+  echo "fe95f3071b90a592565b8dbcbf27510be05244f5f2a25df32402b0a88ff35514  install.sh" > install.sh.sha256
+  { sha256sum -c install.sh.sha256 || shasum -a 256 -c install.sh.sha256; } && sh install.sh
+  ```
+  The script comes from a release tag and runs only if its SHA-256 matches. It installs the latest release and checks the binary against that release's `SHA256SUMS`. With Rust installed, `cargo install coinpaprika-cli --locked` works too.
 - Quick start: `coinpaprika-cli onboard`
 - Free vs paid: `coinpaprika-cli plans`
 
