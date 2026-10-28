@@ -50,7 +50,7 @@ Priority: CLI flag > env var > config file.
 | `exchange-markets` | Markets on an exchange | `coinpaprika-cli exchange-markets binance` |
 | `tags` | List tags/categories | `coinpaprika-cli tags` |
 | `tag` | Tag details | `coinpaprika-cli tag defi` |
-| `person` | Person details | `coinpaprika-cli person vitalik-buterin` |
+| `person` | Person details | `coinpaprika-cli person charles-hoskinson` |
 | `search` | Search coins, exchanges, people, tags | `coinpaprika-cli search bitcoin` |
 | `convert` | Currency conversion | `coinpaprika-cli convert btc-bitcoin usd-us-dollars` |
 | `platforms` | List contract platforms | `coinpaprika-cli platforms` |

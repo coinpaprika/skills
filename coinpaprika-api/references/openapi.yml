@@ -2,7 +2,7 @@ openapi: 3.1.0
 x-mcp:
   enabled: true
 info:
-  version: 1.7.10
+  version: 1.7.13
   title: Coinpaprika API
   license:
     name: MIT
@@ -24,6 +24,7 @@ info:
     | Starter    | https://api-pro.coinpaprika.com/v1/ |
     | Pro        | https://api-pro.coinpaprika.com/v1/ |
     | Business   | https://api-pro.coinpaprika.com/v1/ |
+    | Ultimate   | https://api-pro.coinpaprika.com/v1/ |
     | Enterprise | https://api-pro.coinpaprika.com/v1/ |
 
     # Authentication
@@ -62,9 +63,10 @@ info:
       | Plan       | Calls/month                         |
       |------------|-------------------------------------|
       | Free       | 20 000 |
-      | Starter    | 200 000 |
-      | Pro        | 500 000 |
-      | Business   | 3 000 000 |
+      | Starter    | 400 000 |
+      | Pro        | 1 000 000 |
+      | Business   | 5 000 000 |
+      | Ultimate   | 10 000 000 |
       | Enterprise | No limits |
 
     # API Clients
@@ -124,6 +126,11 @@ info:
     [/contracts/{platform_id}/{contract_address}](#operation/getTicker)
 servers:
   - url: https://api.coinpaprika.com/v1
+    description: Free plan. No API key required.
+  - url: https://api-pro.coinpaprika.com/v1
+    description: >-
+      Paid plans. Required for every endpoint marked as paid. Send the API key as
+      the entire Authorization header value, with no Bearer prefix.
 tags:
   - name: Key
     description: API key related operations
@@ -149,6 +156,9 @@ paths:
   /key/info:
     get:
       summary: Get API key info
+      x-mint:
+        metadata:
+          description: "Your API key's plan and current usage. Paid plans only, on api-pro.coinpaprika.com."
       operationId: getKeyInfo
       description: |
         Returns API key information:
@@ -162,6 +172,7 @@ paths:
         - Starter
         - Pro
         - Business
+        - Ultimate
         - Enterprise
 
         **Update interval:** Every 1 minute.
@@ -171,11 +182,11 @@ paths:
         - APIKeyAuth: []
       x-codeSamples:
         - lang: cURL
-          label: CLI
+          label: Paid plans
           source: |
             curl --request GET \
-            --url https://api-pro.coinpaprika.com/v1/key/info \
-            --header 'Authorization: <api-key>'
+            --url "https://api-pro.coinpaprika.com/v1/key/info" \
+            --header "Authorization: $COINPAPRIKA_API_KEY"
       responses:
         '200':
           description: successful operation
@@ -194,6 +205,9 @@ paths:
   /global:
     get:
       summary: Get market overview data
+      x-mint:
+        metadata:
+          description: "Crypto market overview: total market cap, 24h volume, Bitcoin dominance, all-time highs and the number of tracked cryptocurrencies."
       operationId: getGlobal
       description: |
         Returns current cryptocurrencies market overview metrics, such as:
@@ -208,6 +222,7 @@ paths:
         - Starter
         - Pro
         - Business
+        - Ultimate
         - Enterprise
 
         **Update interval:** Every 5 minute.
@@ -216,10 +231,16 @@ paths:
       security: []
       x-codeSamples:
         - lang: cURL
-          label: CLI
+          label: Free plan
           source: |
             curl --request GET \
             --url 'https://api.coinpaprika.com/v1/global'
+        - lang: cURL
+          label: Paid plans
+          source: |
+            curl --request GET \
+            --url "https://api-pro.coinpaprika.com/v1/global" \
+            --header "Authorization: $COINPAPRIKA_API_KEY"
       responses:
         '200':
           description: successful operation
@@ -236,6 +257,9 @@ paths:
   /coins:
     get:
       summary: List coins
+      x-mint:
+        metadata:
+          description: "Every cryptocurrency on CoinPaprika with its ID, name, symbol, rank, type and active status."
       operationId: getCoins
       description: |
         Returns basic information about cryptocurrencies on coinpaprika.com:
@@ -250,6 +274,7 @@ paths:
         - Starter
         - Pro
         - Business
+        - Ultimate
         - Enterprise
 
         **Update interval:** Every 1 minute.
@@ -258,10 +283,16 @@ paths:
       security: []
       x-codeSamples:
         - lang: cURL
-          label: CLI
+          label: Free plan
           source: |
             curl --request GET \
             --url 'https://api.coinpaprika.com/v1/coins'
+        - lang: cURL
+          label: Paid plans
+          source: |
+            curl --request GET \
+            --url "https://api-pro.coinpaprika.com/v1/coins" \
+            --header "Authorization: $COINPAPRIKA_API_KEY"
       responses:
         '200':
           description: successful operation
@@ -280,6 +311,9 @@ paths:
   /coins/{coin_id}:
     get:
       summary: Get coin by ID
+      x-mint:
+        metadata:
+          description: "Descriptive data for one coin: description, links, team, tags and whitepaper. No prices; use the ticker endpoints for those."
       operationId: getCoinById
       description: |
         Returns detailed descriptive information about a single coin, without price or volume data. For price data, check the [/tickers](#operation/getTickers) and [/tickers/{coin_id}](#operation/getTickersById) endpoints.
@@ -289,6 +323,7 @@ paths:
         - Starter
         - Pro
         - Business
+        - Ultimate
         - Enterprise
 
         **Update interval:** Every 1 minute.
@@ -299,10 +334,16 @@ paths:
       security: []
       x-codeSamples:
         - lang: cURL
-          label: CLI
+          label: Free plan
           source: |
             curl --request GET \
             --url 'https://api.coinpaprika.com/v1/coins/btc-bitcoin'
+        - lang: cURL
+          label: Paid plans
+          source: |
+            curl --request GET \
+            --url "https://api-pro.coinpaprika.com/v1/coins/btc-bitcoin" \
+            --header "Authorization: $COINPAPRIKA_API_KEY"
       responses:
         '200':
           description: successful operation
@@ -325,6 +366,9 @@ paths:
   /coins/mappings:
     get:
       summary: API ID mappings
+      x-mint:
+        metadata:
+          description: "Map coin IDs from CoinMarketCap, CoinGecko, CryptoCompare, ISIN and DTI to CoinPaprika IDs. Business, Ultimate and Enterprise plans."
       operationId: getMappings
       description: |
         The API ID Mappings endpoint allows you to map IDs from other cryptocurrency API providers to Coinpaprika API IDs. This is especially useful when you have provider-specific IDs and want to interact with the Coinpaprika API using its own standardized IDs. In addition to Coinpaprika's and other providers internal ID system, this endpoint also supports mapping [ISIN(International Securities Identification Number)](https://www.isin.org/isin-for-cryptocurrency/) and [DTI (Digital Token Identifier)](https://www.iso.org/obp/ui/en/#iso:std:iso:24165:-2:ed-1:v1:en) IDs.
@@ -346,6 +390,7 @@ paths:
 
         **Available on the following API plans:**
         - Business
+        - Ultimate
         - Enterprise
 
         **Examples:**
@@ -361,7 +406,7 @@ paths:
         # Get mappings for a specific Coinmarketcap ID
         curl --request GET \
             --url 'https://api-pro.coinpaprika.com/v1/coins/mappings?coinmarketcap=1' \
-            --header 'Authorization: <your-api-key>'\
+            --header 'Authorization: <your-api-key>'
           
         # Get mappings for a specific Coingecko ID
         curl --request GET \
@@ -398,11 +443,11 @@ paths:
         - APIKeyAuth: []
       x-codeSamples:
         - lang: cURL
-          label: CLI
+          label: Paid plans
           source: |
             curl --request GET \
-            --url 'https://api-pro.coinpaprika.com/v1/coins/mappings?coinpaprika=btc-bitcoin' \
-            --header 'Authorization: <your-api-key>'
+            --url "https://api-pro.coinpaprika.com/v1/coins/mappings?coinpaprika=btc-bitcoin" \
+            --header "Authorization: $COINPAPRIKA_API_KEY"
       responses:
         '200':
           description: successful operation
@@ -421,6 +466,9 @@ paths:
   /coins/{coin_id}/twitter:
     get:
       summary: Get Twitter timeline tweets for a coin (DEPRECATED)
+      x-mint:
+        metadata:
+          description: "Deprecated and due for removal. Tweets from a coin's Twitter timeline."
       operationId: getCoinTwitter
       description: |
         **THIS ENDPOINT HAS BEEN DEPRECATED AND WILL BE REMOVED.**
@@ -435,6 +483,7 @@ paths:
         - Starter
         - Pro
         - Business
+        - Ultimate
         - Enterprise
 
         **Update interval:** Every 5 minutes.
@@ -446,7 +495,7 @@ paths:
       security: []
       x-codeSamples:
         - lang: cURL
-          label: CLI
+          label: Free plan
           source: |
             curl --request GET \
             --url 'https://api.coinpaprika.com/v1/coins/btc-bitcoin/twitter'
@@ -474,6 +523,9 @@ paths:
   /coins/{coin_id}/events:
     get:
       summary: Get coin events by coin ID
+      x-mint:
+        metadata:
+          description: "Events for a coin, such as conferences and releases, with dates, descriptions and links."
       operationId: getCoinEvents
       description: |
         Returns events for a given coin.
@@ -483,6 +535,7 @@ paths:
         - Starter
         - Pro
         - Business
+        - Ultimate
         - Enterprise
 
         **Update interval:** Every 5 minutes.
@@ -493,10 +546,16 @@ paths:
       security: []
       x-codeSamples:
         - lang: cURL
-          label: CLI
+          label: Free plan
           source: |
             curl --request GET \
             --url 'https://api.coinpaprika.com/v1/coins/btc-bitcoin/events'
+        - lang: cURL
+          label: Paid plans
+          source: |
+            curl --request GET \
+            --url "https://api-pro.coinpaprika.com/v1/coins/btc-bitcoin/events" \
+            --header "Authorization: $COINPAPRIKA_API_KEY"
       responses:
         '200':
           description: successful operation
@@ -521,6 +580,9 @@ paths:
   /coins/{coin_id}/exchanges:
     get:
       summary: Get exchanges by coin ID
+      x-mint:
+        metadata:
+          description: "Exchanges where a coin is traded."
       operationId: getCoinExchanges
       description: |
         Returns exchanges where a given coin is traded.
@@ -530,6 +592,7 @@ paths:
         - Starter
         - Pro
         - Business
+        - Ultimate
         - Enterprise
 
         **Update interval:** Every 1 minute.
@@ -540,10 +603,16 @@ paths:
       security: []
       x-codeSamples:
         - lang: cURL
-          label: CLI
+          label: Free plan
           source: |
             curl --request GET \
             --url 'https://api.coinpaprika.com/v1/coins/btc-bitcoin/exchanges'
+        - lang: cURL
+          label: Paid plans
+          source: |
+            curl --request GET \
+            --url "https://api-pro.coinpaprika.com/v1/coins/btc-bitcoin/exchanges" \
+            --header "Authorization: $COINPAPRIKA_API_KEY"
       responses:
         '200':
           description: successful operation
@@ -568,15 +637,21 @@ paths:
   /coins/{coin_id}/markets:
     get:
       summary: Get markets by coin ID
+      x-mint:
+        metadata:
+          description: "Every market where a coin trades, with exchange, pair, price, volume and share of volume."
       operationId: getCoinMarkets
       description: |
         Returns all available markets for a given coin.
+
+        On Business, Ultimate and Enterprise plans each entry also includes `circulating_supply`: the circulating supply implied by the entry, calculated as `market_cap / close` in USD (an approximation, not a recorded supply value). The field is omitted on other plans and when market cap or price is missing.
 
         **Available on the following API plans:**
         - Free
         - Starter
         - Pro
         - Business
+        - Ultimate
         - Enterprise
 
         **Update interval:** Every 1 minute.
@@ -588,10 +663,16 @@ paths:
       security: []
       x-codeSamples:
         - lang: cURL
-          label: CLI
+          label: Free plan
           source: |
             curl --request GET \
             --url 'https://api.coinpaprika.com/v1/coins/btc-bitcoin/markets'
+        - lang: cURL
+          label: Paid plans
+          source: |
+            curl --request GET \
+            --url "https://api-pro.coinpaprika.com/v1/coins/btc-bitcoin/markets" \
+            --header "Authorization: $COINPAPRIKA_API_KEY"
       responses:
         '200':
           description: successful operation
@@ -616,15 +697,23 @@ paths:
   /coins/{coin_id}/ohlcv/latest:
     get:
       summary: Get OHLC for the last full day
+      x-mint:
+        metadata:
+          description: "Open, high, low, close, volume and market cap for a coin's last full day, in USD or BTC."
       operationId: getCoinOHLCVLatest
       description: |
         Returns Open/High/Low/Close values with volume and market capitalization for the last full day.
+
+        The candle is built from our aggregated volume-weighted price, not from one exchange's tape, so it need not line up with a single venue's chart. The [price calculation methodology](https://coinpaprika.com/methodology/) explains how that price and the accompanying volume and market cap are computed.
+
+        On Business, Ultimate and Enterprise plans each entry also includes `circulating_supply`: the circulating supply implied by the entry, calculated as `market_cap / close` in USD (an approximation, not a recorded supply value). The field is omitted on other plans and when market cap or price is missing.
 
         **Available on the following API plans:**
         - Free
         - Starter
         - Pro
         - Business
+        - Ultimate
         - Enterprise
 
         **Update interval:** Every 1 day.
@@ -636,10 +725,16 @@ paths:
       security: []
       x-codeSamples:
         - lang: cURL
-          label: CLI
+          label: Free plan
           source: |
             curl --request GET \
             --url 'https://api.coinpaprika.com/v1/coins/btc-bitcoin/ohlcv/latest'
+        - lang: cURL
+          label: Paid plans
+          source: |
+            curl --request GET \
+            --url "https://api-pro.coinpaprika.com/v1/coins/btc-bitcoin/ohlcv/latest" \
+            --header "Authorization: $COINPAPRIKA_API_KEY"
       responses:
         '200':
           description: successful operation
@@ -664,15 +759,23 @@ paths:
   /coins/{coin_id}/ohlcv/historical:
     get:
       summary: Get historical OHLC
+      x-mint:
+        metadata:
+          description: "Open, high, low, close, volume and market cap for a coin over a date range, in USD or BTC. History depth depends on the plan."
       operationId: getCoinOHLCVHistorical
       description: |
-        Returns Open/High/Low/Close values with volume and market capitalization for any date range. If the `end` date is the current day, data can change with every request until actual close of the day at 23:59:59"
+        Returns Open/High/Low/Close values with volume and market capitalization for any date range. If the `end` date is the current day, data can change with every request until actual close of the day at 23:59:59.
+
+        Candles are built from our aggregated volume-weighted price rather than one exchange's tape. Before comparing a long range against another source, read the [price calculation methodology](https://coinpaprika.com/methodology/), in particular its algorithm history, which records the changes that affect how older candles compare with recent ones.
+
+        On Business, Ultimate and Enterprise plans each entry also includes `circulating_supply`: the circulating supply implied by the entry, calculated as `market_cap / close` in USD (an approximation, not a recorded supply value). The field is omitted on other plans and when market cap or price is missing.
 
         **Available on the following API plans:**
         - Free
         - Starter
         - Pro
         - Business
+        - Ultimate
         - Enterprise
 
         **Maximum time range of data available to fetch depending on the plan:**
@@ -683,6 +786,7 @@ paths:
         | Starter    | Last 30 days |
         | Pro        | Last 90 days |
         | Business   | Last 365 days |
+        | Ultimate   | No limits |
         | Enterprise | No limits |
 
         **The default interval of returned data for OHLCV is 24 hours:**
@@ -710,6 +814,7 @@ paths:
         | Starter    | `24h` |
         | Pro        | `24h` |
         | Business   | `1h`, `6h`, `12h`, `24h` |
+        | Ultimate   | `1h`, `6h`, `12h`, `24h` |
         | Enterprise | `5m`, `15m`, `30m`, `1h`, `6h`, `12h`, `24h` |
 
         **Update interval:** Every 5 minute.
@@ -725,10 +830,16 @@ paths:
       security: []
       x-codeSamples:
         - lang: cURL
-          label: CLI
+          label: Free plan
           source: |
             curl --request GET \
-            --url 'https://api.coinpaprika.com/v1/coins/btc-bitcoin/ohlcv/historical?start=2019-01-01&end=2019-01-20'
+            --url "https://api.coinpaprika.com/v1/coins/btc-bitcoin/ohlcv/historical?start=$(date -u +%Y-%m-%d)"
+        - lang: cURL
+          label: Paid plans
+          source: |
+            curl --request GET \
+            --url "https://api-pro.coinpaprika.com/v1/coins/btc-bitcoin/ohlcv/historical?start=$(date -u +%Y-%m-%d)" \
+            --header "Authorization: $COINPAPRIKA_API_KEY"
       responses:
         '200':
           description: successful operation
@@ -753,15 +864,21 @@ paths:
   /coins/{coin_id}/ohlcv/today:
     get:
       summary: Get today OHLC
+      x-mint:
+        metadata:
+          description: "Open, high, low, close, volume and market cap for the current day so far, in USD or BTC."
       operationId: getCoinOHLCVToday
       description: |
         Returns Open/High/Low/Close values with volume and market capitalization for the current day. Data can change every each request until actual close of the day at 23:59:59.
+
+        The candle is built from our aggregated volume-weighted price, not from one exchange's tape. The [price calculation methodology](https://coinpaprika.com/methodology/) explains how that price, the volume behind it and the market cap are computed.
 
         **Available on the following API plans:**
         - Free
         - Starter
         - Pro
         - Business
+        - Ultimate
         - Enterprise
 
         **Update interval:** Every 5 minute.
@@ -773,10 +890,16 @@ paths:
       security: []
       x-codeSamples:
         - lang: cURL
-          label: CLI
+          label: Free plan
           source: |
             curl --request GET \
             --url 'https://api.coinpaprika.com/v1/coins/btc-bitcoin/ohlcv/today'
+        - lang: cURL
+          label: Paid plans
+          source: |
+            curl --request GET \
+            --url "https://api-pro.coinpaprika.com/v1/coins/btc-bitcoin/ohlcv/today" \
+            --header "Authorization: $COINPAPRIKA_API_KEY"
       responses:
         '200':
           description: successful operation
@@ -801,6 +924,9 @@ paths:
   /people/{person_id}:
     get:
       summary: Get person by ID
+      x-mint:
+        metadata:
+          description: "A person in crypto: name, links and the projects and positions linked to them."
       description: |
         Returns information about a person with the specified ID, related to the cryptocurrency market. Using this endpoint you can get a description of the person, social media links, number of teams she or he is involved in and the positions in those teams. 
 
@@ -809,6 +935,7 @@ paths:
         - Starter
         - Pro
         - Business
+        - Ultimate
         - Enterprise
 
         **Update interval:** Every 1 hour.
@@ -820,10 +947,16 @@ paths:
       security: []
       x-codeSamples:
         - lang: cURL
-          label: CLI
+          label: Free plan
           source: |
             curl --request GET \
             --url 'https://api.coinpaprika.com/v1/people/vitalik-buterin'
+        - lang: cURL
+          label: Paid plans
+          source: |
+            curl --request GET \
+            --url "https://api-pro.coinpaprika.com/v1/people/vitalik-buterin" \
+            --header "Authorization: $COINPAPRIKA_API_KEY"
       responses:
         '200':
           description: successful operation
@@ -846,6 +979,9 @@ paths:
   /tags:
     get:
       summary: List tags
+      x-mint:
+        metadata:
+          description: "Coin categories (tags), optionally with the coins in each."
       operationId: getTags
       description: |
         Returns basic information about cryptocurrencies tags (categories):
@@ -860,6 +996,7 @@ paths:
         - Starter
         - Pro
         - Business
+        - Ultimate
         - Enterprise
 
         **Update interval:** Every 1 hour.
@@ -868,12 +1005,18 @@ paths:
       security: []
       x-codeSamples:
         - lang: cURL
-          label: CLI
+          label: Free plan
           source: |
             curl --request GET \
             --url 'https://api.coinpaprika.com/v1/tags'
         - lang: cURL
-          label: CLI - with additional fields
+          label: Paid plans
+          source: |
+            curl --request GET \
+            --url "https://api-pro.coinpaprika.com/v1/tags" \
+            --header "Authorization: $COINPAPRIKA_API_KEY"
+        - lang: cURL
+          label: Free plan, with additional fields
           source: |
             curl --request GET \
             --url 'https://api.coinpaprika.com/v1/tags?additional_fields=coins,icos'
@@ -944,6 +1087,9 @@ paths:
   /tags/{tag_id}:
     get:
       summary: Get tag by ID
+      x-mint:
+        metadata:
+          description: "One coin category (tag) with its description and, optionally, the coins in it."
       operationId: getTagById
       description: |
         Returns information about a given cryptocurrency tag:
@@ -958,6 +1104,7 @@ paths:
         - Starter
         - Pro
         - Business
+        - Ultimate
         - Enterprise
 
         **Update interval:** Every 1 hour.
@@ -966,12 +1113,18 @@ paths:
       security: []
       x-codeSamples:
         - lang: cURL
-          label: CLI
+          label: Free plan
           source: |
             curl --request GET \
             --url 'https://api.coinpaprika.com/v1/tags/blockchain-service?additional_fields=coins,icos'
         - lang: cURL
-          label: CLI - without additional fields
+          label: Paid plans
+          source: |
+            curl --request GET \
+            --url "https://api-pro.coinpaprika.com/v1/tags/blockchain-service?additional_fields=coins,icos" \
+            --header "Authorization: $COINPAPRIKA_API_KEY"
+        - lang: cURL
+          label: Free plan, without additional fields
           source: |
             curl --request GET \
             --url 'https://api.coinpaprika.com/v1/tags/blockchain-service'
@@ -1032,6 +1185,9 @@ paths:
         - Tickers
       security: []
       summary: Get tickers for all active coins
+      x-mint:
+        metadata:
+          description: "Current price, volume, market cap and price changes for every active coin, in up to 3 quote currencies."
       description: |
         Returns price data of all active cryptocurrencies on coinpaprika.com:
         * identity (`id`, `name`, `symbol`)
@@ -1040,11 +1196,14 @@ paths:
         * [beta coefficient](https://www.investopedia.com/terms/b/beta.asp) (`beta_value`)
         * price data in a given currency (price, volumes, market cap, price changes, ath)
 
+        `price` is a volume-weighted average across the markets we track, not a single exchange's quote. See the [price calculation methodology](https://coinpaprika.com/methodology/) for how markets are selected, how outliers are removed, and how supply, market cap and ath are derived.
+
         **Available on the following API plans:**
         - Free - there is no `circulating supply` field in the Free plan. If you need this field, use another API plan.
         - Starter
         - Pro
         - Business
+        - Ultimate
         - Enterprise
 
         **Maximum number of assets returned depending on the selected API plan:**
@@ -1055,6 +1214,7 @@ paths:
         | Starter    | No limits |
         | Pro        | No limits |
         | Business   | No limits |
+        | Ultimate   | No limits |
         | Enterprise | No limits |
 
         **Update interval:** 
@@ -1062,10 +1222,16 @@ paths:
         - On average 5 minutes for Free
       x-codeSamples:
         - lang: cURL
-          label: CLI
+          label: Free plan
           source: |
             curl --request GET \
             --url 'https://api.coinpaprika.com/v1/tickers'
+        - lang: cURL
+          label: Paid plans
+          source: |
+            curl --request GET \
+            --url "https://api-pro.coinpaprika.com/v1/tickers" \
+            --header "Authorization: $COINPAPRIKA_API_KEY"
       operationId: getTickers
       parameters:
         - $ref: '#/components/parameters/tickers_quotes'
@@ -1084,12 +1250,107 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/tooManyRequestsError'
+  /tickers/simple:
+    get:
+      tags:
+        - Tickers
+      summary: Get simplified ticker data for all coins
+      x-mint:
+        metadata:
+          description: "Id, name, symbol, rank and price for every active coin, refreshed every minute. Paid plans only."
+      description: |
+        Returns simplified ticker information (`id`, `name`, `symbol`, `rank`, `price`) for all active
+        cryptocurrencies.
+
+        This is a lightweight alternative to `/tickers`: it returns only essential fields,
+        making it ideal for dashboards, watchlists, and high-frequency polling.
+
+        **Available on the following API plans:**
+        - Starter
+        - Pro
+        - Business
+        - Ultimate
+        - Enterprise
+
+        **Update interval:** Every 1 minute.
+
+        **Note:** This endpoint is only available on `api-pro.coinpaprika.com`.
+      x-codeSamples:
+        - lang: cURL
+          label: Paid plans
+          source: |
+            curl --request GET \
+            --url "https://api-pro.coinpaprika.com/v1/tickers/simple?quotes=USD,BTC" \
+            --header "Authorization: $COINPAPRIKA_API_KEY"
+      operationId: getTickersSimple
+      parameters:
+        - $ref: '#/components/parameters/tickers_quotes'
+        - $ref: '#/components/parameters/page'
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/simple_tick'
+              example:
+                - id: btc-bitcoin
+                  name: Bitcoin
+                  symbol: BTC
+                  rank: 1
+                  quotes:
+                    USD:
+                      price: 67432.15
+                    BTC:
+                      price: 1.0
+                - id: eth-ethereum
+                  name: Ethereum
+                  symbol: ETH
+                  rank: 2
+                  quotes:
+                    USD:
+                      price: 3521.42
+                    BTC:
+                      price: 0.05224
+        '400':
+          description: invalid parameters (e.g. unsupported quote currency or more than 3 quotes)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorResponse'
+              examples:
+                tooManyQuotes:
+                  summary: More than 3 quotes requested
+                  value:
+                    error: Max number of quotes is 3
+                invalidParams:
+                  summary: Unsupported quote currency
+                  value:
+                    error: Invalid parameters
+        '404':
+          description: returned when the endpoint is accessed on a non-pro host
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: '404 page not found'
+        '429':
+          description: too many requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tooManyRequestsError'
   /tickers/{coin_id}:
     get:
       tags:
         - Tickers
       security: []
       summary: Get ticker for a specific coin
+      x-mint:
+        metadata:
+          description: "Current price, volume, market cap and price changes for one coin, in up to 3 quote currencies."
       description: |
         Returns price data of a single cryptocurrency on coinpaprika.com:
         * identity (`id`, `name`, `symbol`)
@@ -1098,11 +1359,14 @@ paths:
         * [beta coefficient](https://www.investopedia.com/terms/b/beta.asp) (`beta_value`)
         * price data in a given currency (price, volumes, market cap, price changes, ath)
 
+        `price` is a volume-weighted average across the markets we track, not a single exchange's quote. See the [price calculation methodology](https://coinpaprika.com/methodology/) for how markets are selected, how outliers are removed, and how supply, market cap and ath are derived.
+
         **Available on the following API plans:**
         - Free - there is no `circulating supply` field in the Free plan. If you need this field, use another API plan.
         - Starter
         - Pro
         - Business
+        - Ultimate
         - Enterprise
 
         **Update interval:** 
@@ -1110,10 +1374,16 @@ paths:
         - On average 5 minutes for Free
       x-codeSamples:
         - lang: cURL
-          label: CLI
+          label: Free plan
           source: |
             curl --request GET \
             --url 'https://api.coinpaprika.com/v1/tickers/btc-bitcoin'
+        - lang: cURL
+          label: Paid plans
+          source: |
+            curl --request GET \
+            --url "https://api-pro.coinpaprika.com/v1/tickers/btc-bitcoin" \
+            --header "Authorization: $COINPAPRIKA_API_KEY"
       operationId: getTickersById
       parameters:
         - $ref: '#/components/parameters/coin_id'
@@ -1143,24 +1413,37 @@ paths:
         - Tickers
       security: []
       summary: Get historical ticks for a specific coin
+      x-mint:
+        metadata:
+          description: "Historical price, 24h volume and market cap for a coin, in USD or BTC, at intervals from 5 minutes to 365 days depending on the plan."
       description: |
-        Returns historical values of `price`, `volume_24h`, `market_cap` for a given cryptocurrency on coinpaprika.com:
+        Returns historical values of `price`, `volume_24h`, `market_cap` for a given cryptocurrency on coinpaprika.com.
+
+        On Business, Ultimate and Enterprise plans each entry also includes `circulating_supply`: the circulating supply implied by the entry, calculated as `market_cap / price` in USD (an approximation, not a recorded supply value). For intervals of `15m` and longer it reflects averaged data. The field is omitted on other plans and when market cap or price is missing.
+
+        Each point is produced by the same volume-weighted pipeline as the live ticker. See the [price calculation methodology](https://coinpaprika.com/methodology/) for how markets are selected and outliers removed, and its algorithm history for changes that affect how older points compare with recent ones.
 
         **Available history range depending on the selected API plan:**
 
-        | Interval | `interval` param values | Free | Starter | Pro | Business | Enterprise |
-        |---|---|---|---|---|---|---|
-        | Daily | `24h`, `1d`, `7d`, `14d`, `30d`, `90d`, `365d` | last 1 year | last 5 years | unlimited | unlimited | unlimited |
-        | Hourly | `1h`, `2h`, `3h`, `6h`, `12h` | last 1 day | last 30 days | last 90 days | last 365 days | unlimited |
-        | 5-minute | `5m`, `10m`, `15m`, `30m`, `45m` | none | last 7 days | last 30 days | last 365 days | unlimited |
+        | Interval | `interval` param values | Free | Starter | Pro | Business | Ultimate | Enterprise |
+        |---|---|---|---|---|---|---|---|
+        | Daily | `24h`, `1d`, `7d`, `14d`, `30d`, `90d`, `365d` | last 1 year | last 5 years | unlimited | unlimited | unlimited | unlimited |
+        | Hourly | `1h`, `2h`, `3h`, `6h`, `12h` | last 1 day | last 30 days | last 90 days | last 365 days | unlimited | unlimited |
+        | 5-minute | `5m`, `10m`, `15m`, `30m`, `45m` | none | last 7 days | last 30 days | last 365 days | unlimited | unlimited |
 
         **Update interval:** Every 5 minutes.
       x-codeSamples:
         - lang: cURL
-          label: CLI
+          label: Free plan
           source: |
             curl --request GET \
-            --url 'https://api.coinpaprika.com/v1/tickers/btc-bitcoin/historical?start=2019-01-01&interval=1d'
+            --url "https://api.coinpaprika.com/v1/tickers/btc-bitcoin/historical?start=$(date -u +%Y-%m-%d)&interval=1h"
+        - lang: cURL
+          label: Paid plans
+          source: |
+            curl --request GET \
+            --url "https://api-pro.coinpaprika.com/v1/tickers/btc-bitcoin/historical?start=$(date -u +%Y-%m-%d)&interval=1h" \
+            --header "Authorization: $COINPAPRIKA_API_KEY"
       operationId: getTickersHistoricalById
       parameters:
         - $ref: '#/components/parameters/coin_id'
@@ -1193,6 +1476,9 @@ paths:
   /exchanges:
     get:
       summary: List exchanges
+      x-mint:
+        metadata:
+          description: "Exchanges tracked by CoinPaprika with rank, volume, number of markets and confidence score."
       operationId: getExchanges
       parameters:
         - $ref: '#/components/parameters/quotes'
@@ -1213,15 +1499,22 @@ paths:
         - Starter
         - Pro
         - Business
+        - Ultimate
         - Enterprise
 
         **Update interval:** Every 1 minute.
       x-codeSamples:
         - lang: cURL
-          label: CLI
+          label: Free plan
           source: |
             curl --request GET \
             --url 'https://api.coinpaprika.com/v1/exchanges'
+        - lang: cURL
+          label: Paid plans
+          source: |
+            curl --request GET \
+            --url "https://api-pro.coinpaprika.com/v1/exchanges" \
+            --header "Authorization: $COINPAPRIKA_API_KEY"
       responses:
         '200':
           description: successful operation
@@ -1240,6 +1533,9 @@ paths:
   /exchanges/{exchange_id}:
     get:
       summary: Get exchange by ID
+      x-mint:
+        metadata:
+          description: "One exchange: description, links, rank, volume, number of markets and confidence score."
       operationId: getExchangeByID
       parameters:
         - $ref: '#/components/parameters/quotes'
@@ -1261,15 +1557,22 @@ paths:
         - Starter
         - Pro
         - Business
+        - Ultimate
         - Enterprise
 
         **Update interval:** Every 1 minute.
       x-codeSamples:
         - lang: cURL
-          label: CLI
+          label: Free plan
           source: |
             curl --request GET \
             --url 'https://api.coinpaprika.com/v1/exchanges/binance'
+        - lang: cURL
+          label: Paid plans
+          source: |
+            curl --request GET \
+            --url "https://api-pro.coinpaprika.com/v1/exchanges/binance" \
+            --header "Authorization: $COINPAPRIKA_API_KEY"
       responses:
         '200':
           description: successful operation
@@ -1292,6 +1595,9 @@ paths:
   /exchanges/{exchange_id}/markets:
     get:
       summary: List an exchange markets
+      x-mint:
+        metadata:
+          description: "Every market on one exchange, with pair, price, volume and share of the exchange's volume."
       operationId: getExchangeMarkets
       parameters:
         - $ref: '#/components/parameters/quotes'
@@ -1312,15 +1618,22 @@ paths:
         - Starter
         - Pro
         - Business
+        - Ultimate
         - Enterprise
 
         **Update interval:** Every 1 minute.
       x-codeSamples:
         - lang: cURL
-          label: CLI
+          label: Free plan
           source: |
             curl --request GET \
             --url 'https://api.coinpaprika.com/v1/exchanges/binance/markets'
+        - lang: cURL
+          label: Paid plans
+          source: |
+            curl --request GET \
+            --url "https://api-pro.coinpaprika.com/v1/exchanges/binance/markets" \
+            --header "Authorization: $COINPAPRIKA_API_KEY"
       responses:
         '200':
           description: successful operation
@@ -1345,6 +1658,9 @@ paths:
   /contracts:
     get:
       summary: List contracts platforms
+      x-mint:
+        metadata:
+          description: "Smart contract platforms, such as eth-ethereum, that you can look up contract addresses on."
       description: |
         Returns all available contract platforms on coinpaprika.com.
 
@@ -1353,15 +1669,22 @@ paths:
         - Starter
         - Pro
         - Business
+        - Ultimate
         - Enterprise
 
         **Update interval:** Every 1 minute.
       x-codeSamples:
         - lang: cURL
-          label: CLI
+          label: Free plan
           source: |
             curl --request GET \
             --url 'https://api.coinpaprika.com/v1/contracts'
+        - lang: cURL
+          label: Paid plans
+          source: |
+            curl --request GET \
+            --url "https://api-pro.coinpaprika.com/v1/contracts" \
+            --header "Authorization: $COINPAPRIKA_API_KEY"
       operationId: getPlatforms
       tags:
         - Contracts
@@ -1384,6 +1707,9 @@ paths:
   /contracts/{platform_id}:
     get:
       summary: Get all contract addressess for a given platform
+      x-mint:
+        metadata:
+          description: "Every token contract address CoinPaprika tracks on one platform, with its coin ID."
       description: |
         Returns all available contracts for a given platform on coinpaprika.com.
 
@@ -1392,15 +1718,22 @@ paths:
         - Starter
         - Pro
         - Business
+        - Ultimate
         - Enterprise
 
         **Update interval:** Every 1 minute.
       x-codeSamples:
         - lang: cURL
-          label: CLI
+          label: Free plan
           source: |
             curl --request GET \
             --url 'https://api.coinpaprika.com/v1/contracts/eth-ethereum'
+        - lang: cURL
+          label: Paid plans
+          source: |
+            curl --request GET \
+            --url "https://api-pro.coinpaprika.com/v1/contracts/eth-ethereum" \
+            --header "Authorization: $COINPAPRIKA_API_KEY"
       operationId: getContracts
       parameters:
         - $ref: '#/components/parameters/platform_id'
@@ -1425,6 +1758,9 @@ paths:
   /contracts/{platform_id}/{contract_address}:
     get:
       summary: Redirect to Ticker by contract address
+      x-mint:
+        metadata:
+          description: "Redirects a contract address to the current ticker of its coin."
       description: |
         Returns [ticker](#operation/getTickersById) data for a contract with a given address.
 
@@ -1433,15 +1769,22 @@ paths:
         - Starter
         - Pro
         - Business
+        - Ultimate
         - Enterprise
 
         **Update interval:** Every 5 minute.
       x-codeSamples:
         - lang: cURL
-          label: CLI
+          label: Free plan
           source: |
             curl --request GET \
             --url 'https://api.coinpaprika.com/v1/contracts/eth-ethereum/0xd26114cd6ee289accf82350c8d8487fedb8a0c07'
+        - lang: cURL
+          label: Paid plans
+          source: |
+            curl --request GET \
+            --url "https://api-pro.coinpaprika.com/v1/contracts/eth-ethereum/0xd26114cd6ee289accf82350c8d8487fedb8a0c07" \
+            --header "Authorization: $COINPAPRIKA_API_KEY"
       operationId: getTicker
       parameters:
         - $ref: '#/components/parameters/platform_id'
@@ -1463,6 +1806,9 @@ paths:
   /contracts/{platform_id}/{contract_address}/historical:
     get:
       summary: Redirect to historical ticks by contract address
+      x-mint:
+        metadata:
+          description: "Redirects a contract address to the historical ticks of its coin."
       description: |
         Returns [historical ticks](#operation/getTickersHistoricalById) for a contract with a given address.
 
@@ -1471,10 +1817,16 @@ paths:
         **Update interval:** Every 5 minute.
       x-codeSamples:
         - lang: cURL
-          label: CLI
+          label: Free plan
           source: |
             curl --request GET \
-            --url 'https://api.coinpaprika.com/v1/contracts/eth-ethereum/0xd26114cd6ee289accf82350c8d8487fedb8a0c07/historical?start=2019-01-01&interval=1d'
+            --url "https://api.coinpaprika.com/v1/contracts/eth-ethereum/0xd26114cd6ee289accf82350c8d8487fedb8a0c07/historical?start=$(date -u +%Y-%m-%d)&interval=1h"
+        - lang: cURL
+          label: Paid plans
+          source: |
+            curl --request GET \
+            --url "https://api-pro.coinpaprika.com/v1/contracts/eth-ethereum/0xd26114cd6ee289accf82350c8d8487fedb8a0c07/historical?start=$(date -u +%Y-%m-%d)&interval=1h" \
+            --header "Authorization: $COINPAPRIKA_API_KEY"
       operationId: getHistoricalTicker
       parameters:
         - $ref: '#/components/parameters/platform_id'
@@ -1503,6 +1855,9 @@ paths:
       tags:
         - Changelog
       summary: Get id changelog for all coins
+      x-mint:
+        metadata:
+          description: "Coin ID changes made by CoinPaprika, so you can update stored IDs. Paid plans only."
       description: |
         Returns coin id changes made by coinpaprika.com moderators:
         * `currency_id` - current id of a coin
@@ -1514,16 +1869,17 @@ paths:
         - Starter
         - Pro
         - Business
+        - Ultimate
         - Enterprise
 
         **Update interval:** Every 1 minute.
       x-codeSamples:
         - lang: cURL
-          label: CLI
+          label: Paid plans
           source: |
             curl --request GET \
-            --url 'https://api-pro.coinpaprika.com/v1/changelog/ids' \
-            --header 'Authorization: <your-api-key>'
+            --url "https://api-pro.coinpaprika.com/v1/changelog/ids" \
+            --header "Authorization: $COINPAPRIKA_API_KEY"
       operationId: getChangelogIDs
       parameters:
         - $ref: '#/components/parameters/page'
@@ -1547,6 +1903,9 @@ paths:
   /search:
     get:
       summary: Search
+      x-mint:
+        metadata:
+          description: "Search coins, exchanges, ICOs, people and tags by name or symbol."
       operationId: search
       description: |
         Returns currencies, exchanges, icos, people, tags on coinpaprika.com for a given search query.
@@ -1556,15 +1915,22 @@ paths:
         - Starter
         - Pro
         - Business
+        - Ultimate
         - Enterprise
 
         **Update interval:** Every 1 minute.
       x-codeSamples:
         - lang: cURL
-          label: CLI
+          label: Free plan
           source: |
             curl --request GET \
-            --url 'https://api.coinpaprika.com/v1/search?q=btc'
+            --url 'https://api.coinpaprika.com/v1/search/?q=btc'
+        - lang: cURL
+          label: Paid plans
+          source: |
+            curl --request GET \
+            --url "https://api-pro.coinpaprika.com/v1/search/?q=btc" \
+            --header "Authorization: $COINPAPRIKA_API_KEY"
       tags:
         - Tools
       security: []
@@ -1591,6 +1957,9 @@ paths:
   /price-converter:
     get:
       summary: Price converter
+      x-mint:
+        metadata:
+          description: "Convert an amount of one currency into another at current prices."
       operationId: priceConverter
       description: |
         Converts a set amount of base currency to quote currency.
@@ -1600,15 +1969,22 @@ paths:
         - Starter
         - Pro
         - Business
+        - Ultimate
         - Enterprise
 
         **Update interval:** Every 1 minute.
       x-codeSamples:
         - lang: cURL
-          label: CLI
+          label: Free plan
           source: |
             curl --request GET \
             --url 'https://api.coinpaprika.com/v1/price-converter?base_currency_id=btc-bitcoin&quote_currency_id=eth-ethereum&amount=1.2'
+        - lang: cURL
+          label: Paid plans
+          source: |
+            curl --request GET \
+            --url "https://api-pro.coinpaprika.com/v1/price-converter?base_currency_id=btc-bitcoin&quote_currency_id=eth-ethereum&amount=1.2" \
+            --header "Authorization: $COINPAPRIKA_API_KEY"
       tags:
         - Tools
       security: []
@@ -1637,6 +2013,9 @@ paths:
         - Tickers
       security: []
       summary: Get ticker information for all coins (DEPRECATED)
+      x-mint:
+        metadata:
+          description: "Deprecated and due for removal. Use the tickers endpoints instead."
       operationId: getTickers
       description: |
         **THIS ENDPOINT HAS BEEN DEPRECATED AND WILL BE REMOVED.**
@@ -1659,6 +2038,9 @@ paths:
         - Tickers
       security: []
       summary: Get ticker by ID (DEPRECATED)
+      x-mint:
+        metadata:
+          description: "Deprecated and due for removal. Use the tickers endpoints instead."
       operationId: getTickerById
       description: |
         **THIS ENDPOINT HAS BEEN DEPRECATED AND WILL BE REMOVED.**
@@ -2325,6 +2707,10 @@ components:
           type: integer
           example: 83808161204
           nullable: true
+        circulating_supply:
+          type: integer
+          example: 96087000
+          description: Circulating supply implied by the entry (`market_cap / close` in USD); an approximation, not a recorded supply value. Returned only on Business, Ultimate and Enterprise plans, omitted when market cap or price is missing.
     link_with_followers:
       type: object
       properties:
@@ -2555,6 +2941,65 @@ components:
           example: '2018-11-14T07:20:41Z'
         quotes:
           $ref: '#/components/schemas/quotes'
+    simple_quote:
+      type: object
+      description: Simplified quote containing only the price.
+      required:
+        - price
+      properties:
+        price:
+          type: number
+          format: double
+          description: Current price in the quote currency.
+          example: 67432.15
+    simple_quotes:
+      type: object
+      description: |
+        Map of quote currency symbol to simplified price data.
+        Keys are the requested quote currency symbols (e.g. "USD", "BTC", "ETH").
+      additionalProperties:
+        $ref: '#/components/schemas/simple_quote'
+      example:
+        USD:
+          price: 67432.15
+    simple_tick:
+      type: object
+      description: Simplified tick response containing only essential fields.
+      required:
+        - id
+        - name
+        - symbol
+        - rank
+        - quotes
+      properties:
+        id:
+          type: string
+          description: Unique coin identifier (slug).
+          example: btc-bitcoin
+        name:
+          type: string
+          description: Coin name.
+          example: Bitcoin
+        symbol:
+          type: string
+          description: Coin ticker symbol.
+          example: BTC
+        rank:
+          type: integer
+          format: int64
+          description: Market rank of the coin.
+          example: 1
+        quotes:
+          $ref: '#/components/schemas/simple_quotes'
+    errorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Human-readable error message.
+          example: Invalid parameters
     historical_tick:
       type: object
       description: Historical tick response.
@@ -2572,6 +3017,10 @@ components:
         market_cap:
           type: integer
           example: 83761787514
+        circulating_supply:
+          type: integer
+          example: 97906000
+          description: Circulating supply implied by the entry (`market_cap / price` in USD); an approximation, not a recorded supply value. Returned only on Business, Ultimate and Enterprise plans, omitted when market cap or price is missing.
     historical_ticks:
       type: array
       description: Historical tick response.
@@ -2977,7 +3426,7 @@ components:
       name: quote
       in: query
       required: false
-      description: 'returned data quote (available values: `usd` `btc`)'
+      description: 'Quote currency of the returned data: `usd` or `btc`, no other values. Other currencies (EUR, PLN and more) exist only for current prices, through `quotes` on the ticker endpoints and through the price converter.'
       schema:
         type: string
         default: usd
@@ -3093,7 +3542,7 @@ components:
       name: quote
       in: query
       required: false
-      description: 'returned data quote (available values: `usd` `btc`)'
+      description: 'Quote currency of the returned data: `usd` or `btc`, no other values. Other currencies (EUR, PLN and more) exist only for current prices, through `quotes` on the ticker endpoints and through the price converter.'
       schema:
         type: string
         default: usd
