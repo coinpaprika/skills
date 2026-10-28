@@ -1,12 +1,12 @@
 ---
 name: coinpaprika-api
 description: Access the CoinPaprika API to query cryptocurrency market data including coin prices, tickers, exchanges, historical OHLCV data, and global market statistics. Use this skill when making HTTP requests to api.coinpaprika.com or api-pro.coinpaprika.com for crypto market information.
-version: 1.0.1
+version: 1.1.0
 ---
 
 # CoinPaprika API Skill
 
-> **Freshness check (run once per session, before relying on this skill):** this file is `version: 1.0.1`. Fetch the latest copy's header:
+> **Freshness check (run once per session, before relying on this skill):** this file is `version: 1.1.0`, verified against the live API on 2026-10-28. Fetch the latest copy's header:
 >
 > ```bash
 > curl -s -r 0-400 https://raw.githubusercontent.com/coinpaprika/skills/main/coinpaprika-api/SKILL.md
@@ -103,7 +103,9 @@ Add to `claude_desktop_config.json` or equivalent:
 }
 ```
 
-The hosted server needs no API key to start. It exposes 31 tools for querying coins, tickers, exchanges, OHLCV, contracts, tags, and search. Verify the count with a live `tools/list`.
+The hosted server needs no API key. It exposes 27 tools for querying coins, tickers, exchanges, OHLCV, contracts, tags, and search, all on the free plan. Verify the count with a live `tools/list`.
+
+Four paid tools are not on the hosted server: `getCoinOHLCVHistorical`, `getChangelogIDs` and `keyInfo` (Starter and up) and `getMappings` (Business and up). A call to one by name returns `CP402_PAID_ENDPOINT`. They run in the open-source server, `npx @coinpaprika/mcp`, with `COINPAPRIKA_API_KEY` set to your key.
 
 ### Option 4: SDKs
 
@@ -152,6 +154,7 @@ GET /coins/{coin_id}/twitter                   # DEPRECATED
 GET /tickers                                   # All tickers (?quotes=USD,BTC)
 GET /tickers/{coin_id}                         # Specific coin ticker
 GET /tickers/{coin_id}/historical              # Historical ticks (?start, ?end, ?interval, ?limit, ?quote)
+GET /tickers/simple                            # Simplified tickers for all coins (Starter+, paid host only)
 ```
 
 ### Exchanges
@@ -189,13 +192,13 @@ GET /tags/{tag_id}?additional_fields=coins,icos # Tag with coins and ICOs
 ### People
 
 ```
-GET /people/{person_id}                        # Person details (e.g., vitalik-buterin)
+GET /people/{person_id}                        # Person details (e.g., charles-hoskinson)
 ```
 
 ### Search and tools
 
 ```
-GET /search?q={query}&c={categories}&limit={n} # Search (categories: currencies,exchanges,icos,people,tags)
+GET /search/?q={query}&c={categories}&limit={n} # Search (categories: currencies,exchanges,icos,people,tags)
 GET /price-converter?base_currency_id={from}&quote_currency_id={to}&amount={n}
 ```
 
@@ -243,16 +246,26 @@ curl -s "https://api.coinpaprika.com/v1/tickers/btc-bitcoin?quotes=USD" | jq '.q
 curl -s "https://api.coinpaprika.com/v1/tickers" | jq 'sort_by(-.quotes.USD.market_cap) | .[0:10] | .[] | {name, symbol, price: .quotes.USD.price, market_cap: .quotes.USD.market_cap}'
 ```
 
-### Historical OHLCV for ETH (30 days)
+### OHLCV for ETH
+
+The free plan has the last full day and the last 24 hours of history; an older `start` returns 402.
 
 ```bash
-curl -s "https://api.coinpaprika.com/v1/coins/eth-ethereum/ohlcv/historical?start=2025-01-01&end=2025-01-31" | jq
+curl -s "https://api.coinpaprika.com/v1/coins/eth-ethereum/ohlcv/latest" | jq
+```
+
+The last 30 days need a paid plan (Starter keeps one month of OHLCV, Pro three, Business one year):
+
+```bash
+START=$(date -u -d '29 days ago' +%Y-%m-%d 2>/dev/null || date -u -v-29d +%Y-%m-%d)
+curl -s "https://api-pro.coinpaprika.com/v1/coins/eth-ethereum/ohlcv/historical?start=${START}" \
+  -H "Authorization: ${COINPAPRIKA_API_KEY}" | jq
 ```
 
 ### Search for a token
 
 ```bash
-curl -s "https://api.coinpaprika.com/v1/search?q=pepe&c=currencies&limit=5" | jq '.currencies'
+curl -s "https://api.coinpaprika.com/v1/search/?q=pepe&c=currencies&limit=5" | jq '.currencies'
 ```
 
 ### Look up token by contract address
@@ -293,7 +306,7 @@ Pattern: `{symbol}-{name}` (lowercase, hyphens for spaces)
 
 ### Exchange IDs
 
-`binance`, `coinbase-exchange`, `kraken`, `bybit`, `okx`, `bitfinex`, `kucoin`
+`binance`, `coinbase`, `kraken`, `bybit-spot`, `okx`, `bitfinex`, `kucoin`
 
 ---
 
