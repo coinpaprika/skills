@@ -1,12 +1,12 @@
 ---
 name: coinpaprika-api
 description: Access the CoinPaprika API to query cryptocurrency market data including coin prices, tickers, exchanges, historical OHLCV data, and global market statistics. Use this skill when making HTTP requests to api.coinpaprika.com or api-pro.coinpaprika.com for crypto market information.
-version: 1.1.0
+version: 1.1.1
 ---
 
 # CoinPaprika API Skill
 
-> **Freshness check (run once per session, before relying on this skill):** this file is `version: 1.1.0`, verified against the live API on 2026-10-28. Fetch the latest copy's header:
+> **Freshness check (run once per session, before relying on this skill):** this file is `version: 1.1.1`, verified against the live API on 2026-10-28. Fetch the latest copy's header:
 >
 > ```bash
 > curl -s -r 0-400 https://raw.githubusercontent.com/coinpaprika/skills/main/coinpaprika-api/SKILL.md
@@ -258,7 +258,7 @@ The last 30 days need a paid plan (Starter keeps one month of OHLCV, Pro three, 
 
 ```bash
 START=$(date -u -d '29 days ago' +%Y-%m-%d 2>/dev/null || date -u -v-29d +%Y-%m-%d)
-curl -s "https://api-pro.coinpaprika.com/v1/coins/eth-ethereum/ohlcv/historical?start=${START}" \
+curl -s "https://api-pro.coinpaprika.com/v1/coins/eth-ethereum/ohlcv/historical?start=${START}&limit=30" \
   -H "Authorization: ${COINPAPRIKA_API_KEY}" | jq
 ```
 
