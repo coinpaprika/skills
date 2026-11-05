@@ -1,12 +1,12 @@
 ---
 name: dexpaprika-api
 description: Access the DexPaprika API, CLI, and streaming service to query DEX data including networks, pools, tokens, and trading activity. Use this skill when making HTTP requests to api.dexpaprika.com or streaming.dexpaprika.com, or when using dexpaprika-cli for blockchain DEX information.
-version: 2.13.1
+version: 2.14.0
 ---
 
 # DexPaprika API Skill
 
-> **Freshness check (run once per session, before relying on this skill):** this file is `version: 2.13.1`, verified against the live API on 2026-10-14. Fetch the latest copy's header:
+> **Freshness check (run once per session, before relying on this skill):** this file is `version: 2.14.0`, verified against the live API on 2026-11-05. Fetch the latest copy's header:
 >
 > ```bash
 > curl -s -r 0-400 https://raw.githubusercontent.com/coinpaprika/skills/main/dexpaprika-api/SKILL.md
@@ -71,7 +71,7 @@ dexpaprika-cli filter-tokens solana --fdv-min 1000000 --liquidity-usd-min 50000 
 # Filter pools by volume, liquidity, txns, creation date
 dexpaprika-cli pool-filter ethereum --volume-24h-min 500000 --liquidity-usd-min 50000 --output json --raw
 
-# Relative times (CLI 0.8.0+): pools created in the last day
+# Relative times (CLI 0.8.0+): pools created in the last day (keyless and free keys see up to an hour ago)
 dexpaprika-cli pool-filter solana --created-after -24h --sort-by created_at --output json --raw
 
 # Swaps in the last hour. Dev or Pro key, on the paid host (CLI 0.9.0+)
@@ -383,7 +383,7 @@ Full list: `GET /networks` or `dexpaprika-cli networks`.
 Two pagination models coexist:
 
 - **Page-based** (`/networks/{network}/dexes`): `?page=1&limit=10&order_by=volume_usd&sort=desc`. Pages are 1-indexed (first page is `page=1`). Max 1000 pages. `order_by` values on this endpoint: `volume_usd`, `price_usd`, `transactions`, `last_price_change_usd_24h`, `created_at`.
-- **Cursor-based** (the four `/search` endpoints): pass `limit` plus the `cursor` value from the previous response. Rows arrive under `results`, alongside `has_next_page` and `next_cursor`. `limit` defaults to 50, maximum 100. **Paging needs an API key:** without one you get the first page, and a keyless request that sends `cursor` gets `403` with `"error": "plan_required"`, `"required_tier": "free"`, `"param": "cursor"` (during the warning period it still answers `200` with an `x-api-warning` header). Any key, a free one from https://console.dexpaprika.com included, pages without limit. Treat that `403` as a missing key, never retry it. `order_by` values are canonical: `volume_usd_24h`, `volume_usd_7d`, `volume_usd_30d`, `liquidity_usd`, `txns_24h`, `created_at`, `price_change_percentage_24h`, plus `price_usd`, `price_change_percentage_6h`, `price_change_percentage_1h` and `price_change_percentage_5m` (pools only) and `fdv_usd` (tokens only). The legacy names (`volume_usd`, `transactions`, `last_price_change_usd_24h`) return HTTP 400 on `/search` endpoints.
+- **Cursor-based** (the four `/search` endpoints): pass `limit` plus the `cursor` value from the previous response. Rows arrive under `results`, alongside `has_next_page` and `next_cursor`. `limit` defaults to 50, maximum 100. **Paging needs an API key:** without one you get the first page, and a keyless request that sends `cursor` gets `403` with `"error": "plan_required"`, `"required_tier": "free"`, `"param": "cursor"` (during the warning period it still answers `200` with an `x-api-warning` header). Any key, a free one from https://console.dexpaprika.com included, pages without limit. Treat that `403` as a missing key, never retry it. **Search runs an hour behind on the free tiers:** keyless requests and free keys do not see pools or tokens created in the last 60 minutes. There is no error: `order_by=created_at` returns the newest rows older than an hour, and a `created_after` window under an hour (`-10m`, `-30m`) returns `200` with an empty `results`. A token's pools (`token_address` on pool search) follow the same delay, so a token launched in the last hour shows none yet; the pool and token detail endpoints answer at any age. Do not read that empty array as "nothing new"; to see pools as they are indexed, use a Dev, Pro or Enterprise key on https://api-pro.dexpaprika.com. `order_by` values are canonical: `volume_usd_24h`, `volume_usd_7d`, `volume_usd_30d`, `liquidity_usd`, `txns_24h`, `created_at`, `price_change_percentage_24h`, plus `price_usd`, `price_change_percentage_6h`, `price_change_percentage_1h` and `price_change_percentage_5m` (pools only) and `fdv_usd` (tokens only). The legacy names (`volume_usd`, `transactions`, `last_price_change_usd_24h`) return HTTP 400 on `/search` endpoints.
 
 ## Timestamps
 
