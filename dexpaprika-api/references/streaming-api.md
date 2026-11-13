@@ -191,11 +191,11 @@ GET /sse/ohlcv?method=token_ohlcv&chain={network}&address={token_address}&interv
 
 ```bash
 # live
-curl --http1.1 -N -H "Authorization: $DEXPAPRIKA_API_KEY" \
+curl -N -H "Authorization: $DEXPAPRIKA_API_KEY" \
   "https://streaming-pro.dexpaprika.com/sse/ohlcv?method=token_ohlcv&chain=ethereum&address=0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48&interval=60s"
 
 # with the last 5 minutes replayed first
-curl --http1.1 -N -H "Authorization: $DEXPAPRIKA_API_KEY" \
+curl -N -H "Authorization: $DEXPAPRIKA_API_KEY" \
   "https://streaming-pro.dexpaprika.com/sse/ohlcv?method=token_ohlcv&chain=solana&address=So11111111111111111111111111111111111111112&interval=5s&since=$(( $(date +%s) - 300 ))"
 ```
 
@@ -332,7 +332,7 @@ For reserves, match `pool_reserves` (nested `d.tokens[]`, use `BigInt(d.tokens[0
 
 ## HTTP version
 
-`/sse/prices` streams over HTTP/2, which curl negotiates by default for HTTPS: both `GET` and `POST` delivered `token_price` events with `http_version=2` (checked 2026-11-13). `--http1.1` still works if you prefer it. The old `/stream` path, which hung on HTTP/2, now answers `410`.
+All four streams work over HTTP/2, which curl negotiates by default for HTTPS. Checked 2026-11-13 with `http_version=2`: `/sse/prices` (`GET` and `POST`) on `streaming.dexpaprika.com`, and `/sse/reserves`, `/sse/transactions` and `/sse/ohlcv` on `streaming-pro.dexpaprika.com` with a Pro key. `--http1.1` still works if you prefer it. The old `/stream` path, which hung on HTTP/2, now answers `410`.
 
 ---
 

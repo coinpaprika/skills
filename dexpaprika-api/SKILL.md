@@ -216,7 +216,7 @@ curl -N -X POST "https://streaming.dexpaprika.com/sse/prices" \
 
 Pool reserves (GET, free key):
 ```bash
-curl --http1.1 -N -H "Authorization: $DEXPAPRIKA_API_KEY" "https://streaming.dexpaprika.com/sse/reserves?method=pool_reserves&chain=ethereum&address=0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640"
+curl -N -H "Authorization: $DEXPAPRIKA_API_KEY" "https://streaming.dexpaprika.com/sse/reserves?method=pool_reserves&chain=ethereum&address=0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640"
 ```
 
 `token_price` event fields: `address`, `chain`, `price` (USD as string), `timestamp`, `timestamp_price` (both unix seconds). The legacy `t_p` method still answers on `/sse/prices` with a compact `{a, c, p, t, t_p}` shape; it is not in the spec, so do not use it in new code. `/stream` itself is gone (`410`).
@@ -232,10 +232,10 @@ Raw integer fields (`reserve`, `delta`, `block`, `previous_block`) exceed `Numbe
 
 ```bash
 # GET with request_id; the value comes back on each pool_reserves event
-curl --http1.1 -N -H "Authorization: $DEXPAPRIKA_API_KEY" "https://streaming.dexpaprika.com/sse/reserves?method=pool_reserves&chain=ethereum&address=0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640&request_id=12345"
+curl -N -H "Authorization: $DEXPAPRIKA_API_KEY" "https://streaming.dexpaprika.com/sse/reserves?method=pool_reserves&chain=ethereum&address=0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640&request_id=12345"
 ```
 
-**Important:** `/sse/prices` streams over HTTP/2, curl's default, so `--http1.1` is optional. One invalid asset cancels the entire stream with HTTP 400. SSE parsers must buffer one message between blank-line boundaries before dispatching: both `event:`/`data:` orderings are valid and the server uses either, and a `request_id:` line can appear alongside `event:`/`data:`.
+**Important:** the `/sse/*` streams work over HTTP/2, curl's default, so `--http1.1` is optional. One invalid asset cancels the entire stream with HTTP 400. SSE parsers must buffer one message between blank-line boundaries before dispatching: both `event:`/`data:` orderings are valid and the server uses either, and a `request_id:` line can appear alongside `event:`/`data:`.
 
 For the full streaming reference (all four feeds, events, errors, parser patterns), read `references/streaming-api.md`.
 
