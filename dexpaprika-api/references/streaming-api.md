@@ -99,7 +99,7 @@ GET /sse/prices?method=token_price&chain={network}&address={token_address}
 Example:
 
 ```bash
-curl --http1.1 -N "https://streaming.dexpaprika.com/sse/prices?method=token_price&chain=ethereum&address=0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+curl -N "https://streaming.dexpaprika.com/sse/prices?method=token_price&chain=ethereum&address=0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
 ```
 
 ---
@@ -330,13 +330,9 @@ For reserves, match `pool_reserves` (nested `d.tokens[]`, use `BigInt(d.tokens[0
 
 ---
 
-## HTTP/1.1 requirement
+## HTTP version
 
-SSE streaming requires HTTP/1.1. HTTP/2 (curl's default for HTTPS) may not behave correctly with persistent text streams.
-
-- curl: add `--http1.1`.
-- Python `requests`: works by default.
-- Node.js `fetch`: works by default.
+`/sse/prices` streams over HTTP/2, which curl negotiates by default for HTTPS: both `GET` and `POST` delivered `token_price` events with `http_version=2` (checked 2026-11-13). `--http1.1` still works if you prefer it. The old `/stream` path, which hung on HTTP/2, now answers `410`.
 
 ---
 

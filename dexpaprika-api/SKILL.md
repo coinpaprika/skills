@@ -1,12 +1,12 @@
 ---
 name: dexpaprika-api
 description: Access the DexPaprika API, CLI, and streaming service to query DEX data including networks, pools, tokens, and trading activity. Use this skill when making HTTP requests to api.dexpaprika.com or streaming.dexpaprika.com, or when using dexpaprika-cli for blockchain DEX information.
-version: 2.14.0
+version: 2.14.1
 ---
 
 # DexPaprika API Skill
 
-> **Freshness check (run once per session, before relying on this skill):** this file is `version: 2.14.0`, verified against the live API on 2026-11-05. Fetch the latest copy's header:
+> **Freshness check (run once per session, before relying on this skill):** this file is `version: 2.14.1`, verified against the live API on 2026-11-05. Fetch the latest copy's header:
 >
 > ```bash
 > curl -s -r 0-400 https://raw.githubusercontent.com/coinpaprika/skills/main/dexpaprika-api/SKILL.md
@@ -204,12 +204,12 @@ Keyless requests to a feed or token that needs a key get `403` with `"error":"pr
 
 Single token price (GET):
 ```bash
-curl --http1.1 -N "https://streaming.dexpaprika.com/sse/prices?method=token_price&chain=ethereum&address=0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+curl -N "https://streaming.dexpaprika.com/sse/prices?method=token_price&chain=ethereum&address=0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
 ```
 
 Multiple token prices (POST, up to 25):
 ```bash
-curl --http1.1 -N -X POST "https://streaming.dexpaprika.com/sse/prices" \
+curl -N -X POST "https://streaming.dexpaprika.com/sse/prices" \
   -H "Accept: text/event-stream" -H "Content-Type: application/json" \
   -d '[{"chain":"ethereum","address":"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2","method":"token_price"}]'
 ```
@@ -235,7 +235,7 @@ Raw integer fields (`reserve`, `delta`, `block`, `previous_block`) exceed `Numbe
 curl --http1.1 -N -H "Authorization: $DEXPAPRIKA_API_KEY" "https://streaming.dexpaprika.com/sse/reserves?method=pool_reserves&chain=ethereum&address=0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640&request_id=12345"
 ```
 
-**Important:** Streaming requires HTTP/1.1. Add `--http1.1` with curl. One invalid asset cancels the entire stream with HTTP 400. SSE parsers must buffer one message between blank-line boundaries before dispatching: both `event:`/`data:` orderings are valid and the server uses either, and a `request_id:` line can appear alongside `event:`/`data:`.
+**Important:** `/sse/prices` streams over HTTP/2, curl's default, so `--http1.1` is optional. One invalid asset cancels the entire stream with HTTP 400. SSE parsers must buffer one message between blank-line boundaries before dispatching: both `event:`/`data:` orderings are valid and the server uses either, and a `request_id:` line can appear alongside `event:`/`data:`.
 
 For the full streaming reference (all four feeds, events, errors, parser patterns), read `references/streaming-api.md`.
 
